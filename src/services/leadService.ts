@@ -2,7 +2,6 @@ import { supabaseTrillo, supabaseConto } from '@/lib/supabase';
 import { Call, Property, LeadSearchResult, LeadFullProfile } from '@/types';
 
 export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
-  // Fetch all from both databases
   const { data: properties, error: propError } = await supabaseConto
     .from('properties')
     .select('*')
@@ -17,12 +16,9 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
 
   if (callError) console.error("Calls fetch error", callError);
 
-  // Merge results - prioritize lead_id, fallback to phone
   const resultsMap = new Map<string, LeadSearchResult>();
 
-  // Process Properties first
   properties?.forEach((p: Property) => {
-    // Use lead_id as primary key, fallback to phone
     const key = p.lead_id || (p.lead_telefono ? p.lead_telefono.replace(/\s/g, '') : `prop_${p.id}`);
     
     resultsMap.set(key, {
@@ -39,9 +35,7 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
     });
   });
 
-  // Process Calls and merge
   calls?.forEach((c: Call) => {
-    // Use lead_id as primary key, fallback to phone
     const key = c.lead_id || (c.lead_telefono ? c.lead_telefono.replace(/\s/g, '') : `call_${c.id}`);
     const existing = resultsMap.get(key);
 
@@ -67,7 +61,6 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
     }
   });
 
-  // Sort by most recent
   return Array.from(resultsMap.values()).sort((a, b) => 
     new Date(b.lastInteraction).getTime() - new Date(a.lastInteraction).getTime()
   );
@@ -79,7 +72,6 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
   const cleanQuery = query.trim();
   const isPhone = /^\+?[0-9\s]+$/.test(cleanQuery);
 
-  // 1. Fetch from Properties (Conto Economico)
   let propQuery = supabaseConto.from('properties').select('*');
   
   if (isPhone) {
@@ -91,7 +83,6 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
   const { data: properties, error: propError } = await propQuery;
   if (propError) console.error("Property search error", propError);
 
-  // 2. Fetch from Calls (Trillo)
   let callQuery = supabaseTrillo.from('calls').select('*');
 
   if (isPhone) {
@@ -103,10 +94,8 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
   const { data: calls, error: callError } = await callQuery;
   if (callError) console.error("Call search error", callError);
 
-  // 3. Merge Results - prioritize lead_id, fallback to phone
   const resultsMap = new Map<string, LeadSearchResult>();
 
-  // Process Properties first
   properties?.forEach((p: Property) => {
     const key = p.lead_id || (p.lead_telefono ? p.lead_telefono.replace(/\s/g, '') : `prop_${p.id}`);
     
@@ -124,7 +113,6 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
     });
   });
 
-  // Process Calls and merge
   calls?.forEach((c: Call) => {
     const key = c.lead_id || (c.lead_telefono ? c.lead_telefono.replace(/\s/g, '') : `call_${c.id}`);
     const existing = resultsMap.get(key);
@@ -162,7 +150,6 @@ export const getLeadDetails = async (id: string): Promise<LeadFullProfile> => {
   let leadId: string | null = null;
   let phoneNumber: string | null = null;
 
-  // Attempt 1: Check if ID matches a Property
   const { data: propData } = await supabaseConto
     .from('properties')
     .select('*')
@@ -174,7 +161,6 @@ export const getLeadDetails = async (id: string): Promise<LeadFullProfile> => {
     leadId = property.lead_id || null;
     phoneNumber = property.lead_telefono;
   } else {
-    // Attempt 2: Check if ID matches a Call
     const { data: callData } = await supabaseTrillo
       .from('calls')
       .select('*')
@@ -183,4 +169,64 @@ export const getLeadDetails = async (id: string): Promise<LeadFullProfile> => {
     
     if (callData) {
       call = callData as Call;
-      leadId = call.lead_id || nul
+      leadId = call.lead_id || null;
+      phoneNumber = call.lead_telefono;
+    }
+  }
+
+  if (!property && !call) {
+    throw new Error("Lead non trovato");
+  }
+
+  if (leadId) {
+    if (!property) {
+      const { data: p } = await supabaseConto
+        .from('properties')
+        .select('*')
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (p && p.length > 0) property = p[0] as Property;
+    }
+
+    if (!call) {
+      const { data: c } = await supabaseTrillo
+        .from('calls')
+        .select('*')
+        .eq('lead_id', leadId)
+        .order('created_at', { ascending: false });
+
+      if (c && c.length > 0) {
+        const qualified = c.find((x: Call) => x.esito_qualificazione === 'qualificato');
+        call = (qualified || c[0]) as Call;
+      }
+    }
+  } else if (phoneNumber) {
+    if (!property) {
+      const { data: p } = await supabaseConto
+        .from('properties')
+        .select('*')
+        .ilike('lead_telefono', `%${phoneNumber}%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (p && p.length > 0) property = p[0] as Property;
+    }
+
+    if (!call) {
+      const { data: c } = await supabaseTrillo
+        .from('calls')
+        .select('*')
+        .ilike('lead_telefono', `%${phoneNumber}%`)
+        .order('created_at', { ascending: false });
+
+      if (c && c.length > 0) {
+        const qualified = c.find((x: Call) => x.esito_qualificazione === 'qualificato');
+        call = (qualified || c[0]) as Call;
+      }
+    }
+  }
+
+  return { call, property };
+};
