@@ -17,15 +17,17 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
 
   if (callError) console.error("Calls fetch error", callError);
 
-  // Merge results by phone number
+  // Merge results - prioritize lead_id, fallback to phone
   const resultsMap = new Map<string, LeadSearchResult>();
 
   // Process Properties first
   properties?.forEach((p: Property) => {
-    const key = p.lead_telefono ? p.lead_telefono.replace(/\s/g, '') : `prop_${p.id}`;
+    // Use lead_id as primary key, fallback to phone
+    const key = p.lead_id || (p.lead_telefono ? p.lead_telefono.replace(/\s/g, '') : `prop_${p.id}`);
     
     resultsMap.set(key, {
       id: p.id,
+      lead_id: p.lead_id,
       type: 'property',
       name: `${p.lead_nome} ${p.lead_cognome || ''}`.trim(),
       phone: p.lead_telefono,
@@ -39,7 +41,8 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
 
   // Process Calls and merge
   calls?.forEach((c: Call) => {
-    const key = c.lead_telefono ? c.lead_telefono.replace(/\s/g, '') : `call_${c.id}`;
+    // Use lead_id as primary key, fallback to phone
+    const key = c.lead_id || (c.lead_telefono ? c.lead_telefono.replace(/\s/g, '') : `call_${c.id}`);
     const existing = resultsMap.get(key);
 
     if (existing) {
@@ -51,6 +54,7 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
     } else {
       resultsMap.set(key, {
         id: c.id,
+        lead_id: c.lead_id,
         type: 'call',
         name: c.lead_nome,
         phone: c.lead_telefono,
@@ -99,15 +103,16 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
   const { data: calls, error: callError } = await callQuery;
   if (callError) console.error("Call search error", callError);
 
-  // 3. Merge Results
+  // 3. Merge Results - prioritize lead_id, fallback to phone
   const resultsMap = new Map<string, LeadSearchResult>();
 
   // Process Properties first
   properties?.forEach((p: Property) => {
-    const key = p.lead_telefono ? p.lead_telefono.replace(/\s/g, '') : `prop_${p.id}`;
+    const key = p.lead_id || (p.lead_telefono ? p.lead_telefono.replace(/\s/g, '') : `prop_${p.id}`);
     
     resultsMap.set(key, {
       id: p.id,
+      lead_id: p.lead_id,
       type: 'property',
       name: `${p.lead_nome} ${p.lead_cognome || ''}`.trim(),
       phone: p.lead_telefono,
@@ -121,7 +126,7 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
 
   // Process Calls and merge
   calls?.forEach((c: Call) => {
-    const key = c.lead_telefono ? c.lead_telefono.replace(/\s/g, '') : `call_${c.id}`;
+    const key = c.lead_id || (c.lead_telefono ? c.lead_telefono.replace(/\s/g, '') : `call_${c.id}`);
     const existing = resultsMap.get(key);
 
     if (existing) {
@@ -133,6 +138,7 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
     } else {
       resultsMap.set(key, {
         id: c.id,
+        lead_id: c.lead_id,
         type: 'call',
         name: c.lead_nome,
         phone: c.lead_telefono,
@@ -153,6 +159,7 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
 export const getLeadDetails = async (id: string): Promise<LeadFullProfile> => {
   let call: Call | null = null;
   let property: Property | null = null;
+  let leadId: string | null = null;
   let phoneNumber: string | null = null;
 
   // Attempt 1: Check if ID matches a Property
@@ -164,6 +171,7 @@ export const getLeadDetails = async (id: string): Promise<LeadFullProfile> => {
 
   if (propData) {
     property = propData as Property;
+    leadId = property.lead_id || null;
     phoneNumber = property.lead_telefono;
   } else {
     // Attempt 2: Check if ID matches a Call
@@ -175,41 +183,4 @@ export const getLeadDetails = async (id: string): Promise<LeadFullProfile> => {
     
     if (callData) {
       call = callData as Call;
-      phoneNumber = call.lead_telefono;
-    }
-  }
-
-  if (!property && !call) {
-    throw new Error("Lead non trovato");
-  }
-
-  // Fetch missing piece using phone number
-  if (phoneNumber) {
-    if (!property) {
-      const { data: p } = await supabaseConto
-        .from('properties')
-        .select('*')
-        .ilike('lead_telefono', `%${phoneNumber}%`)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (p && p.length > 0) property = p[0] as Property;
-    }
-
-    if (!call) {
-      const { data: c } = await supabaseTrillo
-        .from('calls')
-        .select('*')
-        .ilike('lead_telefono', `%${phoneNumber}%`)
-        .order('created_at', { ascending: false });
-
-      if (c && c.length > 0) {
-        // Prioritize qualified call
-        const qualified = c.find((x: Call) => x.esito_qualificazione === 'qualificato');
-        call = (qualified || c[0]) as Call;
-      }
-    }
-  }
-
-  return { call, property };
-};
+      leadId = call.lead_id || nul

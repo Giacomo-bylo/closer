@@ -1,5 +1,6 @@
 export interface Call {
   id: string;
+  lead_id?: string;
   tenant_id?: string;
   retell_call_id?: string;
   lead_nome: string;
@@ -23,6 +24,7 @@ export interface Call {
 
 export interface Property {
   id: string;
+  lead_id?: string;
   created_at: string;
   updated_at: string;
   lead_nome: string;
@@ -53,6 +55,7 @@ export interface Property {
 
 export interface LeadSearchResult {
   id: string;
+  lead_id?: string;
   type: 'property' | 'call' | 'merged';
   name: string;
   phone: string;
