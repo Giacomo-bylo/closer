@@ -1,6 +1,74 @@
 import { supabaseTrillo, supabaseConto } from '@/lib/supabase';
 import { Call, Property, LeadSearchResult, LeadFullProfile } from '@/types';
 
+export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
+  // Fetch all from both databases
+  const { data: properties, error: propError } = await supabaseConto
+    .from('properties')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (propError) console.error("Properties fetch error", propError);
+
+  const { data: calls, error: callError } = await supabaseTrillo
+    .from('calls')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (callError) console.error("Calls fetch error", callError);
+
+  // Merge results by phone number
+  const resultsMap = new Map<string, LeadSearchResult>();
+
+  // Process Properties first
+  properties?.forEach((p: Property) => {
+    const key = p.lead_telefono ? p.lead_telefono.replace(/\s/g, '') : `prop_${p.id}`;
+    
+    resultsMap.set(key, {
+      id: p.id,
+      type: 'property',
+      name: `${p.lead_nome} ${p.lead_cognome || ''}`.trim(),
+      phone: p.lead_telefono,
+      address: p.indirizzo_completo,
+      lastInteraction: p.updated_at || p.created_at,
+      status: p.status === 'approved' ? 'Approvato' : 'In attesa',
+      hasProperty: true,
+      hasCall: false,
+    });
+  });
+
+  // Process Calls and merge
+  calls?.forEach((c: Call) => {
+    const key = c.lead_telefono ? c.lead_telefono.replace(/\s/g, '') : `call_${c.id}`;
+    const existing = resultsMap.get(key);
+
+    if (existing) {
+      existing.hasCall = true;
+      existing.status = c.esito_qualificazione;
+      if (new Date(c.created_at) > new Date(existing.lastInteraction)) {
+        existing.lastInteraction = c.created_at;
+      }
+    } else {
+      resultsMap.set(key, {
+        id: c.id,
+        type: 'call',
+        name: c.lead_nome,
+        phone: c.lead_telefono,
+        address: undefined,
+        lastInteraction: c.created_at,
+        status: c.esito_qualificazione,
+        hasProperty: false,
+        hasCall: true,
+      });
+    }
+  });
+
+  // Sort by most recent
+  return Array.from(resultsMap.values()).sort((a, b) => 
+    new Date(b.lastInteraction).getTime() - new Date(a.lastInteraction).getTime()
+  );
+};
+
 export const searchLeads = async (query: string): Promise<LeadSearchResult[]> => {
   if (!query || query.length < 2) return [];
 
