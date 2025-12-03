@@ -4,11 +4,10 @@ export function cn(...classes: (string | undefined | null | false)[]) {
 
 export const formatCurrency = (val?: number) => {
   if (val === undefined || val === null) return '-';
-  return new Intl.NumberFormat('it-IT', { 
-    style: 'currency', 
-    currency: 'EUR', 
+  const formatted = new Intl.NumberFormat('it-IT', { 
     maximumFractionDigits: 0 
   }).format(val);
+  return `€ ${formatted}`;
 };
 
 export const formatDate = (isoString: string) => {

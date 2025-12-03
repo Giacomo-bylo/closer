@@ -300,23 +300,25 @@ const LeadDetail: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Altri dati economici */}
+                    {/* Offerta Definitiva */}
+                    <div className={`rounded-lg p-4 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
+                      <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        Offerta Definitiva
+                      </div>
+                      <div className={`text-2xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
+                        {property.offerta_definitiva ? formatCurrency(property.offerta_definitiva) : 'Da definire'}
+                      </div>
+                    </div>
+
+                    {/* Prezzo Rivendita e Costi Riqualificazione */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-slate-50 rounded-lg p-3">
                         <div className="text-xs text-slate-500 mb-1">Prezzo Rivendita</div>
                         <div className="text-lg font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
                       </div>
                       <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-500 mb-1">Costi Totali</div>
-                        <div className="text-lg font-semibold text-slate-900">{formatCurrency(property.totale_costi)}</div>
-                      </div>
-                      <div className="bg-emerald-50 rounded-lg p-3">
-                        <div className="text-xs text-emerald-600 mb-1">ROI Stimato</div>
-                        <div className="text-lg font-semibold text-emerald-700">{property.roi ? `${property.roi}%` : '-'}</div>
-                      </div>
-                      <div className="bg-emerald-50 rounded-lg p-3">
-                        <div className="text-xs text-emerald-600 mb-1">Utile Lordo</div>
-                        <div className="text-lg font-semibold text-emerald-700">{formatCurrency(property.utile_lordo)}</div>
+                        <div className="text-xs text-slate-500 mb-1">Costi Riqualificazione</div>
+                        <div className="text-lg font-semibold text-slate-900">{formatCurrency(property.totale_costi_escluso_acquisto)}</div>
                       </div>
                     </div>
                   </div>

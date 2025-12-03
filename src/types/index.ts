@@ -49,6 +49,8 @@ export interface Property {
   roi?: number;
   utile_lordo?: number;
   totale_costi?: number;
+  totale_costi_escluso_acquisto?: number;
+  offerta_definitiva?: number;
   status: string;
   approved_at?: string;
   closer_notes?: string;
