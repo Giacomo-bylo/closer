@@ -51,6 +51,7 @@ export interface Property {
   totale_costi?: number;
   status: string;
   approved_at?: string;
+  closer_notes?: string;
 }
 
 export interface LeadSearchResult {

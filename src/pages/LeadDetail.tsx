@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2 } from 'lucide-react';
 import { getLeadDetails } from '@/services/leadService';
+import { supabaseConto } from '@/lib/supabase';
 import { LeadFullProfile } from '@/types';
 import Badge from '@/components/Badge';
 import TranscriptViewer from '@/components/TranscriptViewer';
@@ -14,6 +15,8 @@ const LeadDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [notes, setNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -21,6 +24,10 @@ const LeadDetail: React.FC = () => {
       try {
         const details = await getLeadDetails(id);
         setData(details);
+        // Carica le note esistenti
+        if (details.property?.closer_notes) {
+          setNotes(details.property.closer_notes);
+        }
       } catch (err) {
         setError('Impossibile caricare i dettagli del lead. Verifica l\'ID o riprova.');
       } finally {
@@ -34,6 +41,30 @@ const LeadDetail: React.FC = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const saveNotes = async () => {
+    if (!data?.property?.id) return;
+    
+    setSavingNotes(true);
+    setNotesSaved(false);
+    
+    try {
+      const { error } = await supabaseConto
+        .from('properties')
+        .update({ closer_notes: notes })
+        .eq('id', data.property.id);
+      
+      if (error) throw error;
+      
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 3000);
+    } catch (err) {
+      console.error('Errore salvataggio note:', err);
+      alert('Errore nel salvataggio delle note');
+    } finally {
+      setSavingNotes(false);
+    }
   };
 
   if (loading) {
@@ -308,12 +339,28 @@ const LeadDetail: React.FC = () => {
                     className="w-full h-32 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
                   />
                   <div className="mt-3 flex justify-between items-center">
-                    <span className="text-xs text-slate-400">Le note verranno salvate automaticamente</span>
+                    <span className="text-xs text-slate-400">
+                      {notesSaved ? (
+                        <span className="text-emerald-600 flex items-center gap-1">
+                          <Check size={14} /> Note salvate!
+                        </span>
+                      ) : (
+                        'Clicca "Salva Note" per salvare'
+                      )}
+                    </span>
                     <button 
-                      className="px-4 py-2 text-sm font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50"
-                      disabled={!notes.trim()}
+                      onClick={saveNotes}
+                      disabled={savingNotes}
+                      className="px-4 py-2 text-sm font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                     >
-                      Salva Note
+                      {savingNotes ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          Salvataggio...
+                        </>
+                      ) : (
+                        'Salva Note'
+                      )}
                     </button>
                   </div>
                 </div>
