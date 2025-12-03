@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote } from 'lucide-react';
 import { getLeadDetails } from '@/services/leadService';
 import { LeadFullProfile } from '@/types';
 import Badge from '@/components/Badge';
@@ -13,6 +13,7 @@ const LeadDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,6 +63,10 @@ const LeadDetail: React.FC = () => {
     : call?.lead_nome || 'Nome Sconosciuto';
   
   const leadPhone = property?.lead_telefono || call?.lead_telefono || 'Numero non disponibile';
+
+  // Calcola range offerta
+  const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
+  const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
   return (
     <div className="space-y-6">
@@ -177,8 +182,9 @@ const LeadDetail: React.FC = () => {
         </section>
 
         {/* Right: Property */}
-        <section className="space-y-6">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full">
+        <section className="space-y-4">
+          {/* Header Scheda Immobile */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-slate-800">
                 <Building2 size={18} className="text-bylo-blue" />
@@ -186,22 +192,30 @@ const LeadDetail: React.FC = () => {
               </div>
               {property && <Badge status={property.status} type="property" />}
             </div>
+          </div>
 
-            <div className="p-6">
-              {!property ? (
-                <div className="text-center py-8 text-slate-400">
-                  <Building2 size={48} className="mx-auto mb-3 opacity-20" />
-                  <p>Valutazione immobile non ancora disponibile.</p>
+          {!property ? (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <div className="text-center py-8 text-slate-400">
+                <Building2 size={48} className="mx-auto mb-3 opacity-20" />
+                <p>Valutazione immobile non ancora disponibile.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Riquadro 1: Dettagli Immobile */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50">
+                  <h3 className="text-sm font-semibold text-slate-700">Dettagli Immobile</h3>
                 </div>
-              ) : (
-                <div className="space-y-6">
+                <div className="p-5">
                   {/* Address */}
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 bg-slate-100 p-2 rounded-lg text-slate-500">
-                      <MapPin size={20} />
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="mt-0.5 bg-slate-100 p-2 rounded-lg text-slate-500">
+                      <MapPin size={18} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-slate-900">{property.indirizzo_completo}</h3>
+                      <h4 className="font-semibold text-slate-900">{property.indirizzo_completo}</h4>
                       <p className="text-sm text-slate-500">
                         {property.tipo_immobile || 'Immobile'} • {property.superficie_mq} mq • {property.numero_locali} locali
                       </p>
@@ -209,7 +223,7 @@ const LeadDetail: React.FC = () => {
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm border-t border-b border-slate-100 py-4">
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Piano</span>
                       <span className="font-medium">{property.piano_immobile || '-'}</span>
@@ -223,58 +237,89 @@ const LeadDetail: React.FC = () => {
                       <span className="font-medium">{property.anno_costruzione || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Condizioni</span>
-                      <span className="font-medium text-right truncate pl-2">{property.condizioni_immobile || '-'}</span>
-                    </div>
-                    <div className="flex justify-between col-span-2">
                       <span className="text-slate-500">Bagni</span>
                       <span className="font-medium">{property.numero_bagni || '-'}</span>
                     </div>
+                    <div className="flex justify-between col-span-2">
+                      <span className="text-slate-500">Condizioni</span>
+                      <span className="font-medium">{property.condizioni_immobile || '-'}</span>
+                    </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Financial Card */}
-                  <div className="bg-slate-900 rounded-xl p-5 text-white relative overflow-hidden">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white opacity-5 rounded-full pointer-events-none"></div>
+              {/* Riquadro 2: Valutazione Economica */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 bg-emerald-50">
+                  <h3 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                    <TrendingUp size={16} />
+                    Valutazione Economica
+                  </h3>
+                </div>
+                <div className="p-5">
+                  <div className="space-y-4">
+                    {/* Range Offerta - In evidenza */}
+                    <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-4">
+                      <div className="text-xs text-bylo-blue font-medium uppercase tracking-wide mb-1">Range Offerta</div>
+                      <div className="text-2xl font-bold text-bylo-blue">
+                        {prezzoAcquistoMin && prezzoAcquistoMax 
+                          ? `${formatCurrency(prezzoAcquistoMin)} - ${formatCurrency(prezzoAcquistoMax)}`
+                          : '-'
+                        }
+                      </div>
+                    </div>
 
-                    <h3 className="text-sm font-medium text-slate-300 uppercase tracking-wider mb-4">Valutazione Economica</h3>
-                    
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-end">
-                        <span className="text-sm text-slate-400">Prezzo Acquisto</span>
-                        <span className="text-lg font-bold">{formatCurrency(property.prezzo_acquisto)}</span>
+                    {/* Altri dati economici */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="text-xs text-slate-500 mb-1">Prezzo Rivendita</div>
+                        <div className="text-lg font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
                       </div>
-                      <div className="flex justify-between items-end border-b border-slate-700 pb-3">
-                        <span className="text-sm text-slate-400">Prezzo Rivendita</span>
-                        <span className="text-lg font-bold">{formatCurrency(property.prezzo_rivendita)}</span>
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="text-xs text-slate-500 mb-1">Costi Totali</div>
+                        <div className="text-lg font-semibold text-slate-900">{formatCurrency(property.totale_costi)}</div>
                       </div>
-                      
-                      <div className="flex justify-between pt-2">
-                        <div>
-                          <div className="text-xs text-slate-400 mb-1">ROI Stimato</div>
-                          <div className="text-xl font-bold text-emerald-400 flex items-center gap-1">
-                            <TrendingUp size={16} />
-                            {property.roi ? `${property.roi}%` : '-'}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-slate-400 mb-1">Utile Lordo</div>
-                          <div className="text-xl font-bold text-white">
-                            {formatCurrency(property.utile_lordo)}
-                          </div>
-                        </div>
+                      <div className="bg-emerald-50 rounded-lg p-3">
+                        <div className="text-xs text-emerald-600 mb-1">ROI Stimato</div>
+                        <div className="text-lg font-semibold text-emerald-700">{property.roi ? `${property.roi}%` : '-'}</div>
+                      </div>
+                      <div className="bg-emerald-50 rounded-lg p-3">
+                        <div className="text-xs text-emerald-600 mb-1">Utile Lordo</div>
+                        <div className="text-lg font-semibold text-emerald-700">{formatCurrency(property.utile_lordo)}</div>
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Costs */}
-                  <div className="flex justify-between text-sm px-1">
-                    <span className="text-slate-500">Costi totali (Ristrutturazione + Spese)</span>
-                    <span className="font-medium text-slate-700">{formatCurrency(property.totale_costi)}</span>
+              {/* Riquadro 3: Note Closer */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-100 bg-amber-50">
+                  <h3 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                    <StickyNote size={16} />
+                    Note Closer
+                  </h3>
+                </div>
+                <div className="p-5">
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Aggiungi note su questo lead... (es. esito chiamata, accordi presi, prossimi passi)"
+                    className="w-full h-32 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
+                  />
+                  <div className="mt-3 flex justify-between items-center">
+                    <span className="text-xs text-slate-400">Le note verranno salvate automaticamente</span>
+                    <button 
+                      className="px-4 py-2 text-sm font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50"
+                      disabled={!notes.trim()}
+                    >
+                      Salva Note
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </>
+          )}
         </section>
 
       </div>

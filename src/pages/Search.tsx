@@ -55,8 +55,48 @@ const Search: React.FC = () => {
     }
   };
 
+  // Componente card compatta per i lead
+  const LeadCard = ({ lead }: { lead: LeadSearchResult }) => (
+    <div
+      onClick={() => navigate(`/lead/${lead.id}`)}
+      className="group bg-white rounded-lg px-4 py-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-bylo-blue transition-all cursor-pointer"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <h3 className="font-semibold text-slate-900 group-hover:text-bylo-blue transition-colors truncate">
+            {lead.name}
+          </h3>
+          {lead.status && <Badge status={lead.status} />}
+        </div>
+        
+        <div className="flex items-center gap-4 text-sm text-slate-500 flex-shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5">
+            <Phone size={13} />
+            <span>{lead.phone}</span>
+          </div>
+          {lead.address && (
+            <div className="hidden md:flex items-center gap-1.5">
+              <MapPin size={13} />
+              <span className="truncate max-w-[150px]">{lead.address}</span>
+            </div>
+          )}
+          <div className="hidden lg:flex items-center gap-1.5">
+            <Calendar size={13} />
+            <span>{formatDate(lead.lastInteraction)}</span>
+          </div>
+          
+          <div className="flex gap-1">
+            {lead.hasCall && <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-medium">Chiamata</span>}
+            {lead.hasProperty && <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded font-medium">Immobile</span>}
+          </div>
+          <ArrowRight size={16} className="text-slate-300 group-hover:text-bylo-blue" />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="text-center mb-10">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Cerca un Lead</h1>
         <p className="text-slate-500">
@@ -64,7 +104,7 @@ const Search: React.FC = () => {
         </p>
       </div>
 
-      <form onSubmit={handleSearch} className="relative mb-12">
+      <form onSubmit={handleSearch} className="relative mb-12 max-w-3xl mx-auto">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <SearchIcon className="h-5 w-5 text-slate-400" />
@@ -91,7 +131,7 @@ const Search: React.FC = () => {
       </form>
 
       {/* Search Results */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {hasSearched && results.length === 0 && !loading && (
           <div className="text-center py-12 bg-white rounded-xl border border-slate-200 border-dashed">
             <p className="text-slate-500">Nessun risultato trovato per "{query}"</p>
@@ -99,47 +139,7 @@ const Search: React.FC = () => {
         )}
 
         {results.map((lead) => (
-          <div
-            key={lead.id}
-            onClick={() => navigate(`/lead/${lead.id}`)}
-            className="group bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-bylo-blue transition-all cursor-pointer"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-lg font-semibold text-slate-900 group-hover:text-bylo-blue transition-colors">
-                    {lead.name}
-                  </h3>
-                  {lead.status && <Badge status={lead.status} />}
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-slate-500 mt-2">
-                  <div className="flex items-center gap-1.5">
-                    <Phone size={14} />
-                    <span>{lead.phone}</span>
-                  </div>
-                  {lead.address && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin size={14} />
-                      <span className="truncate max-w-[200px]">{lead.address}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1.5">
-                    <Calendar size={14} />
-                    <span>{formatDate(lead.lastInteraction)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  {lead.hasCall && <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded font-medium">Chiamata</span>}
-                  {lead.hasProperty && <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-1 rounded font-medium">Immobile</span>}
-                </div>
-                <ArrowRight className="text-slate-300 group-hover:text-bylo-blue ml-2" />
-              </div>
-            </div>
-          </div>
+          <LeadCard key={lead.id} lead={lead} />
         ))}
       </div>
 
@@ -161,49 +161,9 @@ const Search: React.FC = () => {
               <p className="text-slate-500">Nessun lead presente</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {allLeads.map((lead) => (
-                <div
-                  key={lead.id}
-                  onClick={() => navigate(`/lead/${lead.id}`)}
-                  className="group bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-bylo-blue transition-all cursor-pointer"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-lg font-semibold text-slate-900 group-hover:text-bylo-blue transition-colors">
-                          {lead.name}
-                        </h3>
-                        {lead.status && <Badge status={lead.status} />}
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 text-sm text-slate-500 mt-2">
-                        <div className="flex items-center gap-1.5">
-                          <Phone size={14} />
-                          <span>{lead.phone}</span>
-                        </div>
-                        {lead.address && (
-                          <div className="flex items-center gap-1.5">
-                            <MapPin size={14} />
-                            <span className="truncate max-w-[200px]">{lead.address}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={14} />
-                          <span>{formatDate(lead.lastInteraction)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        {lead.hasCall && <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-1 rounded font-medium">Chiamata</span>}
-                        {lead.hasProperty && <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-1 rounded font-medium">Immobile</span>}
-                      </div>
-                      <ArrowRight className="text-slate-300 group-hover:text-bylo-blue ml-2" />
-                    </div>
-                  </div>
-                </div>
+                <LeadCard key={lead.id} lead={lead} />
               ))}
             </div>
           )}
