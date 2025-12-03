@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, MapPin, Phone, Calendar, ArrowRight, Loader2, Users, Trash2, X, Search as SearchIcon } from 'lucide-react';
-import { getAllLeads, deleteLead } from '@/services/leadService';
+import { Filter, MapPin, Phone, Calendar, ArrowRight, Loader2, Users, X, Search as SearchIcon } from 'lucide-react';
+import { getAllLeads } from '@/services/leadService';
 import { LeadSearchResult } from '@/types';
 import Badge from '@/components/Badge';
 import { formatDate } from '@/lib/utils';
@@ -10,8 +10,6 @@ const Search: React.FC = () => {
   const [allLeads, setAllLeads] = useState<LeadSearchResult[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<LeadSearchResult[]>([]);
   const [loadingAll, setLoadingAll] = useState(true);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Filtri
@@ -92,26 +90,6 @@ const Search: React.FC = () => {
     setFilteredLeads(result);
   }, [searchText, statusFilter, dateFilter, allLeads]);
 
-  // Elimina lead
-  const handleDelete = async (leadId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowDeleteConfirm(leadId);
-  };
-
-  const confirmDelete = async (lead: LeadSearchResult) => {
-    setDeleting(lead.id);
-    try {
-      await deleteLead(lead);
-      setAllLeads(prev => prev.filter(l => l.id !== lead.id));
-      setShowDeleteConfirm(null);
-    } catch (err) {
-      console.error('Errore eliminazione:', err);
-      alert('Errore durante l\'eliminazione del lead');
-    } finally {
-      setDeleting(null);
-    }
-  };
-
   // Reset filtri
   const resetFilters = () => {
     setSearchText('');
@@ -123,12 +101,12 @@ const Search: React.FC = () => {
 
   // Componente card compatta per i lead
   const LeadCard = ({ lead }: { lead: LeadSearchResult }) => (
-    <div className="group bg-white rounded-lg px-4 py-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-bylo-blue transition-all">
+    <div
+      onClick={() => navigate(`/lead/${lead.id}`)}
+      className="group bg-white rounded-lg px-4 py-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-bylo-blue transition-all cursor-pointer"
+    >
       <div className="flex items-center justify-between gap-3">
-        <div 
-          onClick={() => navigate(`/lead/${lead.id}`)}
-          className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
-        >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <h3 className="font-semibold text-slate-900 group-hover:text-bylo-blue transition-colors truncate">
             {lead.name}
           </h3>
@@ -156,73 +134,9 @@ const Search: React.FC = () => {
             {lead.hasProperty && <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded font-medium">Immobile</span>}
           </div>
           
-          <button
-            onClick={(e) => handleDelete(lead.id, e)}
-            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
-            title="Elimina lead"
-          >
-            <Trash2 size={16} />
-          </button>
-          
-          <div 
-            onClick={() => navigate(`/lead/${lead.id}`)}
-            className="cursor-pointer"
-          >
-            <ArrowRight size={16} className="text-slate-300 group-hover:text-bylo-blue" />
-          </div>
+          <ArrowRight size={16} className="text-slate-300 group-hover:text-bylo-blue" />
         </div>
       </div>
-
-      {/* Modal conferma eliminazione */}
-      {showDeleteConfirm === lead.id && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDeleteConfirm(null);
-          }}
-        >
-          <div 
-            className="bg-white rounded-xl p-6 max-w-md mx-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Conferma eliminazione</h3>
-            <p className="text-slate-600 mb-4">
-              Sei sicuro di voler eliminare <strong>{lead.name}</strong>?
-              {lead.hasProperty && lead.hasCall && (
-                <span className="block mt-2 text-sm text-amber-600">
-                  ⚠️ Verranno eliminati sia i dati della chiamata che dell'immobile.
-                </span>
-              )}
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-              >
-                Annulla
-              </button>
-              <button
-                onClick={() => confirmDelete(lead)}
-                disabled={deleting === lead.id}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {deleting === lead.id ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    Eliminazione...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={14} />
-                    Elimina
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 
