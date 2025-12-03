@@ -42,11 +42,13 @@ const Search: React.FC = () => {
     // Filtro per testo (nome, telefono, indirizzo)
     if (searchText.trim()) {
       const search = searchText.toLowerCase().trim();
-      result = result.filter(lead => 
-        lead.name.toLowerCase().includes(search) ||
-        lead.phone.includes(search) ||
-        (lead.address && lead.address.toLowerCase().includes(search))
-      );
+      result = result.filter(lead => {
+        const name = lead.name?.toLowerCase() || '';
+        const phone = lead.phone || '';
+        const address = lead.address?.toLowerCase() || '';
+        
+        return name.includes(search) || phone.includes(search) || address.includes(search);
+      });
     }
 
     // Filtro per stato
@@ -68,6 +70,8 @@ const Search: React.FC = () => {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       
       result = result.filter(lead => {
+        if (!lead.lastInteraction) return false;
+        
         const leadDate = new Date(lead.lastInteraction);
         
         if (dateFilter === 'oggi') {
@@ -108,26 +112,30 @@ const Search: React.FC = () => {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <h3 className="font-semibold text-slate-900 group-hover:text-bylo-blue transition-colors truncate">
-            {lead.name}
+            {lead.name || 'Nome sconosciuto'}
           </h3>
           {lead.status && <Badge status={lead.status} />}
         </div>
         
         <div className="flex items-center gap-4 text-sm text-slate-500 flex-shrink-0">
-          <div className="hidden sm:flex items-center gap-1.5">
-            <Phone size={13} />
-            <span>{lead.phone}</span>
-          </div>
+          {lead.phone && (
+            <div className="hidden sm:flex items-center gap-1.5">
+              <Phone size={13} />
+              <span>{lead.phone}</span>
+            </div>
+          )}
           {lead.address && (
             <div className="hidden md:flex items-center gap-1.5">
               <MapPin size={13} />
               <span className="truncate max-w-[150px]">{lead.address}</span>
             </div>
           )}
-          <div className="hidden lg:flex items-center gap-1.5">
-            <Calendar size={13} />
-            <span>{formatDate(lead.lastInteraction)}</span>
-          </div>
+          {lead.lastInteraction && (
+            <div className="hidden lg:flex items-center gap-1.5">
+              <Calendar size={13} />
+              <span>{formatDate(lead.lastInteraction)}</span>
+            </div>
+          )}
           
           <div className="flex gap-1">
             {lead.hasCall && <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-medium">Chiamata</span>}
