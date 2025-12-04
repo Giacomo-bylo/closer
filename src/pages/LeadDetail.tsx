@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home } from 'lucide-react';
 import { getLeadDetails } from '@/services/leadService';
 import { supabaseConto } from '@/lib/supabase';
 import { LeadFullProfile } from '@/types';
 import Badge from '@/components/Badge';
 import TranscriptViewer from '@/components/TranscriptViewer';
-import CalendarBooking from '@/components/CalendarBooking';
+import CalendarModal from '@/components/CalendarModal';
 import { formatDate, formatCurrency, formatDuration } from '@/lib/utils';
 
 const LeadDetail: React.FC = () => {
@@ -31,6 +31,10 @@ const LeadDetail: React.FC = () => {
   const [stepPreliminare, setStepPreliminare] = useState<string>('da_organizzare');
   const [stepPreliminareData, setStepPreliminareData] = useState<string>('');
   const [savingSteps, setSavingSteps] = useState(false);
+
+  // Stati per il modal calendario
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [calendarModalType, setCalendarModalType] = useState<'sopralluogo' | 'preliminare'>('sopralluogo');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -130,28 +134,26 @@ const LeadDetail: React.FC = () => {
     }
   };
 
-  const openGoogleCalendar = (type: 'sopralluogo' | 'preliminare') => {
-    if (!data?.property) return;
-    
-    const leadName = `${data.property.lead_nome} ${data.property.lead_cognome || ''}`.trim();
-    const address = data.property.indirizzo_completo || '';
-    
-    let title = '';
-    let description = '';
-    
-    if (type === 'sopralluogo') {
-      title = `Sopralluogo - ${leadName}`;
-      description = `Sopralluogo immobile\n\nIndirizzo: ${address}\nTelefono: ${data.property.lead_telefono || ''}\nEmail: ${data.property.lead_email || ''}`;
-    } else {
-      title = `Preliminare - ${leadName}`;
-      description = `Firma preliminare\n\nIndirizzo: ${address}\nTelefono: ${data.property.lead_telefono || ''}\nEmail: ${data.property.lead_email || ''}`;
-    }
-    
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(address)}`;
-    window.open(url, '_blank');
+  const openCalendarModal = (type: 'sopralluogo' | 'preliminare') => {
+    setCalendarModalType(type);
+    setCalendarModalOpen(true);
   };
 
-  const formatDateInput = (dateString: string) => {
+  const handleEventCreated = (date: string) => {
+    if (calendarModalType === 'sopralluogo') {
+      setStepSopralluogoData(date);
+      setStepSopralluogo('organizzato');
+      saveStep('step_sopralluogo_data', date);
+      saveStep('step_sopralluogo', 'organizzato');
+    } else {
+      setStepPreliminareData(date);
+      setStepPreliminare('organizzato');
+      saveStep('step_preliminare_data', date);
+      saveStep('step_preliminare', 'organizzato');
+    }
+  };
+
+  const formatDateDisplay = (dateString: string) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
@@ -188,8 +190,8 @@ const LeadDetail: React.FC = () => {
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
-  // Componente per lo step toggle
-  const StepToggle = ({ 
+  // Componente per lo step semplice (Chiamata e Accordo)
+  const SimpleStepToggle = ({ 
     label, 
     icon: Icon, 
     status, 
@@ -197,11 +199,6 @@ const LeadDetail: React.FC = () => {
     field,
     completedLabel,
     pendingLabel,
-    showCalendar,
-    calendarType,
-    dateValue,
-    setDateValue,
-    dateField
   }: { 
     label: string;
     icon: React.ElementType;
@@ -210,11 +207,6 @@ const LeadDetail: React.FC = () => {
     field: string;
     completedLabel: string;
     pendingLabel: string;
-    showCalendar?: boolean;
-    calendarType?: 'sopralluogo' | 'preliminare';
-    dateValue?: string;
-    setDateValue?: (val: string) => void;
-    dateField?: string;
   }) => {
     const isCompleted = status === completedLabel;
     
@@ -225,7 +217,6 @@ const LeadDetail: React.FC = () => {
           <span className="text-sm font-medium text-slate-700">{label}</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Toggle buttons */}
           <div className="flex rounded-lg overflow-hidden border border-slate-200">
             <button
               onClick={() => {
@@ -256,30 +247,85 @@ const LeadDetail: React.FC = () => {
                completedLabel === 'organizzato' ? 'Organizzato' : 'Inviato'}
             </button>
           </div>
-          
-          {/* Calendar button e Date input */}
-          {showCalendar && calendarType && (
-            <>
-              <button
-                onClick={() => openGoogleCalendar(calendarType)}
-                className="p-1.5 text-slate-400 hover:text-bylo-blue hover:bg-blue-50 rounded-lg transition-colors"
-                title="Apri Google Calendar"
-              >
-                <Calendar size={18} />
-              </button>
-              <input
-                type="date"
-                value={dateValue || ''}
-                onChange={(e) => {
-                  if (setDateValue && dateField) {
-                    setDateValue(e.target.value);
-                    saveStep(dateField, e.target.value);
-                  }
-                }}
-                className="px-2 py-1 text-xs border border-slate-200 rounded-lg w-[110px] focus:outline-none focus:ring-2 focus:ring-bylo-blue/20"
-              />
-            </>
+        </div>
+      </div>
+    );
+  };
+
+  // Componente per lo step con calendario (Sopralluogo e Preliminare)
+  const CalendarStepToggle = ({ 
+    label, 
+    icon: Icon, 
+    status, 
+    setStatus, 
+    field,
+    completedLabel,
+    pendingLabel,
+    calendarType,
+    dateValue,
+  }: { 
+    label: string;
+    icon: React.ElementType;
+    status: string;
+    setStatus: (val: string) => void;
+    field: string;
+    completedLabel: string;
+    pendingLabel: string;
+    calendarType: 'sopralluogo' | 'preliminare';
+    dateValue?: string;
+  }) => {
+    const isCompleted = status === completedLabel;
+    
+    return (
+      <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+        <div className="flex items-center gap-2">
+          <Icon size={16} className="text-slate-400" />
+          <span className="text-sm font-medium text-slate-700">{label}</span>
+          {dateValue && (
+            <span className="text-xs text-bylo-blue bg-blue-50 px-2 py-0.5 rounded-full">
+              {formatDateDisplay(dateValue)}
+            </span>
           )}
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Toggle buttons */}
+          <div className="flex rounded-lg overflow-hidden border border-slate-200">
+            <button
+              onClick={() => {
+                setStatus(pendingLabel);
+                saveStep(field, pendingLabel);
+              }}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                !isCompleted 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              Da organizzare
+            </button>
+            <button
+              onClick={() => {
+                setStatus(completedLabel);
+                saveStep(field, completedLabel);
+              }}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                isCompleted 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              Organizzato
+            </button>
+          </div>
+          
+          {/* Calendar button */}
+          <button
+            onClick={() => openCalendarModal(calendarType)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-bylo-blue bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+          >
+            <Calendar size={14} />
+            Prenota
+          </button>
         </div>
       </div>
     );
@@ -287,6 +333,20 @@ const LeadDetail: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Calendar Modal */}
+      {property && (
+        <CalendarModal
+          isOpen={calendarModalOpen}
+          onClose={() => setCalendarModalOpen(false)}
+          onEventCreated={handleEventCreated}
+          eventType={calendarModalType}
+          leadName={leadName}
+          leadPhone={leadPhone}
+          leadAddress={property.indirizzo_completo}
+          propertyId={property.id}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
@@ -434,7 +494,7 @@ const LeadDetail: React.FC = () => {
                 </div>
               </div>
               <div className="px-5 py-2">
-                <StepToggle
+                <SimpleStepToggle
                   label="Chiamata"
                   icon={Phone}
                   status={stepChiamata}
@@ -443,7 +503,7 @@ const LeadDetail: React.FC = () => {
                   pendingLabel="da_contattare"
                   completedLabel="contattato"
                 />
-                <StepToggle
+                <CalendarStepToggle
                   label="Sopralluogo"
                   icon={Home}
                   status={stepSopralluogo}
@@ -451,13 +511,10 @@ const LeadDetail: React.FC = () => {
                   field="step_sopralluogo"
                   pendingLabel="da_organizzare"
                   completedLabel="organizzato"
-                  showCalendar={true}
                   calendarType="sopralluogo"
                   dateValue={stepSopralluogoData}
-                  setDateValue={setStepSopralluogoData}
-                  dateField="step_sopralluogo_data"
                 />
-                <StepToggle
+                <SimpleStepToggle
                   label="Accordo"
                   icon={Send}
                   status={stepAccordo}
@@ -466,7 +523,7 @@ const LeadDetail: React.FC = () => {
                   pendingLabel="da_inviare"
                   completedLabel="inviato"
                 />
-                <StepToggle
+                <CalendarStepToggle
                   label="Preliminare"
                   icon={FileSignature}
                   status={stepPreliminare}
@@ -474,11 +531,8 @@ const LeadDetail: React.FC = () => {
                   field="step_preliminare"
                   pendingLabel="da_organizzare"
                   completedLabel="organizzato"
-                  showCalendar={true}
                   calendarType="preliminare"
                   dateValue={stepPreliminareData}
-                  setDateValue={setStepPreliminareData}
-                  dateField="step_preliminare_data"
                 />
               </div>
             </div>
@@ -516,7 +570,7 @@ const LeadDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Details Grid - Tutti i dettagli */}
+                  {/* Details Grid */}
                   <div className="grid grid-cols-2 gap-y-2.5 gap-x-6 text-sm">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Tipologia</span>
@@ -607,14 +661,6 @@ const LeadDetail: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Prenota Appuntamento */}
-              <CalendarBooking
-                leadName={leadName}
-                leadPhone={leadPhone}
-                leadAddress={property.indirizzo_completo}
-                propertyId={property.id}
-              />
 
               {/* Note Closer */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
