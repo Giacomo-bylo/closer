@@ -354,10 +354,11 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                         return <div key={index} className="aspect-square" />;
                       }
 
-                      const eventsCount = getEventsCountForDay(day);
-                      const past = isPast(day);
-                      const today = isToday(day);
-                      const selected = selectedDate !== null && selectedDate.toDateString() === day.toDateString();
+                      const currentDay: Date = day;
+                      const eventsCount = getEventsCountForDay(currentDayday);
+                      const past = isPast(currentDay);
+                      const today = isToday(currentDay);
+                      const selected = selectedDate !== null && selectedDate.toDateString() === currentDay.toDateString();
 
                       return (
                         <button
