@@ -357,7 +357,7 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                       const eventsCount = getEventsCountForDay(day);
                       const past = isPast(day);
                       const today = isToday(day);
-                      const selected = selectedDate?.toDateString() === day.toDateString();
+                      const selected = selectedDate !== null && selectedDate.toDateString() === day.toDateString();
 
                       return (
                         <button
