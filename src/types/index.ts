@@ -54,6 +54,13 @@ export interface Property {
   status: string;
   approved_at?: string;
   closer_notes?: string;
+  closer_status?: 'in_lavorazione' | 'approvato' | 'rifiutato';
+  step_chiamata?: 'da_contattare' | 'contattato';
+  step_sopralluogo?: 'da_organizzare' | 'organizzato';
+  step_sopralluogo_data?: string;
+  step_accordo?: 'da_inviare' | 'inviato';
+  step_preliminare?: 'da_organizzare' | 'organizzato';
+  step_preliminare_data?: string;
 }
 
 export interface LeadSearchResult {
@@ -65,6 +72,9 @@ export interface LeadSearchResult {
   address?: string;
   lastInteraction: string;
   status?: string;
+  callStatus?: string;
+  propertyStatus?: string;
+  closerStatus?: string;
   hasProperty: boolean;
   hasCall: boolean;
 }

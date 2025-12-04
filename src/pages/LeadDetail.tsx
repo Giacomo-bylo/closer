@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2 } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home, ExternalLink } from 'lucide-react';
 import { getLeadDetails } from '@/services/leadService';
 import { supabaseConto } from '@/lib/supabase';
 import { LeadFullProfile } from '@/types';
@@ -17,6 +17,19 @@ const LeadDetail: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
+  
+  // Stati per il closer
+  const [closerStatus, setCloserStatus] = useState<string>('in_lavorazione');
+  const [savingCloserStatus, setSavingCloserStatus] = useState(false);
+  
+  // Stati per gli step
+  const [stepChiamata, setStepChiamata] = useState<string>('da_contattare');
+  const [stepSopralluogo, setStepSopralluogo] = useState<string>('da_organizzare');
+  const [stepSopralluogoData, setStepSopralluogoData] = useState<string>('');
+  const [stepAccordo, setStepAccordo] = useState<string>('da_inviare');
+  const [stepPreliminare, setStepPreliminare] = useState<string>('da_organizzare');
+  const [stepPreliminareData, setStepPreliminareData] = useState<string>('');
+  const [savingSteps, setSavingSteps] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -24,9 +37,17 @@ const LeadDetail: React.FC = () => {
       try {
         const details = await getLeadDetails(id);
         setData(details);
-        // Carica le note esistenti
-        if (details.property?.closer_notes) {
-          setNotes(details.property.closer_notes);
+        
+        // Carica i dati esistenti
+        if (details.property) {
+          if (details.property.closer_notes) setNotes(details.property.closer_notes);
+          if (details.property.closer_status) setCloserStatus(details.property.closer_status);
+          if (details.property.step_chiamata) setStepChiamata(details.property.step_chiamata);
+          if (details.property.step_sopralluogo) setStepSopralluogo(details.property.step_sopralluogo);
+          if (details.property.step_sopralluogo_data) setStepSopralluogoData(details.property.step_sopralluogo_data);
+          if (details.property.step_accordo) setStepAccordo(details.property.step_accordo);
+          if (details.property.step_preliminare) setStepPreliminare(details.property.step_preliminare);
+          if (details.property.step_preliminare_data) setStepPreliminareData(details.property.step_preliminare_data);
         }
       } catch (err) {
         setError('Impossibile caricare i dettagli del lead. Verifica l\'ID o riprova.');
@@ -67,6 +88,73 @@ const LeadDetail: React.FC = () => {
     }
   };
 
+  const saveCloserStatus = async (newStatus: string) => {
+    if (!data?.property?.id) return;
+    
+    setSavingCloserStatus(true);
+    setCloserStatus(newStatus);
+    
+    try {
+      const { error } = await supabaseConto
+        .from('properties')
+        .update({ closer_status: newStatus })
+        .eq('id', data.property.id);
+      
+      if (error) throw error;
+    } catch (err) {
+      console.error('Errore salvataggio stato closer:', err);
+      alert('Errore nel salvataggio dello stato');
+    } finally {
+      setSavingCloserStatus(false);
+    }
+  };
+
+  const saveStep = async (field: string, value: string) => {
+    if (!data?.property?.id) return;
+    
+    setSavingSteps(true);
+    
+    try {
+      const { error } = await supabaseConto
+        .from('properties')
+        .update({ [field]: value })
+        .eq('id', data.property.id);
+      
+      if (error) throw error;
+    } catch (err) {
+      console.error('Errore salvataggio step:', err);
+      alert('Errore nel salvataggio');
+    } finally {
+      setSavingSteps(false);
+    }
+  };
+
+  const openGoogleCalendar = (type: 'sopralluogo' | 'preliminare') => {
+    if (!data?.property) return;
+    
+    const leadName = `${data.property.lead_nome} ${data.property.lead_cognome || ''}`.trim();
+    const address = data.property.indirizzo_completo || '';
+    
+    let title = '';
+    let description = '';
+    
+    if (type === 'sopralluogo') {
+      title = `Sopralluogo - ${leadName}`;
+      description = `Sopralluogo immobile\n\nIndirizzo: ${address}\nTelefono: ${data.property.lead_telefono || ''}\nEmail: ${data.property.lead_email || ''}`;
+    } else {
+      title = `Preliminare - ${leadName}`;
+      description = `Firma preliminare\n\nIndirizzo: ${address}\nTelefono: ${data.property.lead_telefono || ''}\nEmail: ${data.property.lead_email || ''}`;
+    }
+    
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&details=${encodeURIComponent(description)}&location=${encodeURIComponent(address)}`;
+    window.open(url, '_blank');
+  };
+
+  const formatDateInput = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -99,6 +187,103 @@ const LeadDetail: React.FC = () => {
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
+  // Componente per lo step toggle
+  const StepToggle = ({ 
+    label, 
+    icon: Icon, 
+    status, 
+    setStatus, 
+    field,
+    completedLabel,
+    pendingLabel,
+    showCalendar,
+    calendarType,
+    dateValue,
+    setDateValue,
+    dateField
+  }: { 
+    label: string;
+    icon: React.ElementType;
+    status: string;
+    setStatus: (val: string) => void;
+    field: string;
+    completedLabel: string;
+    pendingLabel: string;
+    showCalendar?: boolean;
+    calendarType?: 'sopralluogo' | 'preliminare';
+    dateValue?: string;
+    setDateValue?: (val: string) => void;
+    dateField?: string;
+  }) => {
+    const isCompleted = status === completedLabel;
+    
+    return (
+      <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+        <div className="flex items-center gap-2">
+          <Icon size={16} className="text-slate-400" />
+          <span className="text-sm font-medium text-slate-700">{label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Toggle buttons */}
+          <div className="flex rounded-lg overflow-hidden border border-slate-200">
+            <button
+              onClick={() => {
+                setStatus(pendingLabel);
+                saveStep(field, pendingLabel);
+              }}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                !isCompleted 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {pendingLabel === 'da_contattare' ? 'Da contattare' : 
+               pendingLabel === 'da_organizzare' ? 'Da organizzare' : 'Da inviare'}
+            </button>
+            <button
+              onClick={() => {
+                setStatus(completedLabel);
+                saveStep(field, completedLabel);
+              }}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                isCompleted 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {completedLabel === 'contattato' ? 'Contattato' : 
+               completedLabel === 'organizzato' ? 'Organizzato' : 'Inviato'}
+            </button>
+          </div>
+          
+          {/* Calendar button e Date input */}
+          {showCalendar && calendarType && (
+            <>
+              <button
+                onClick={() => openGoogleCalendar(calendarType)}
+                className="p-1.5 text-slate-400 hover:text-bylo-blue hover:bg-blue-50 rounded-lg transition-colors"
+                title="Apri Google Calendar"
+              >
+                <Calendar size={18} />
+              </button>
+              <input
+                type="date"
+                value={dateValue || ''}
+                onChange={(e) => {
+                  if (setDateValue && dateField) {
+                    setDateValue(e.target.value);
+                    saveStep(dateField, e.target.value);
+                  }
+                }}
+                className="px-2 py-1 text-xs border border-slate-200 rounded-lg w-[110px] focus:outline-none focus:ring-2 focus:ring-bylo-blue/20"
+              />
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -115,23 +300,46 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
         </div>
-        <button 
-          onClick={copyLink}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors w-fit"
-        >
-          {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
-          {copied ? 'Link copiato!' : 'Copia link scheda'}
-        </button>
+        
+        <div className="flex items-center gap-3">
+          {/* Stato Closer Selezionabile */}
+          {property && (
+            <select
+              value={closerStatus}
+              onChange={(e) => saveCloserStatus(e.target.value)}
+              disabled={savingCloserStatus}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-all cursor-pointer focus:outline-none ${
+                closerStatus === 'approvato' 
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700' 
+                  : closerStatus === 'rifiutato'
+                  ? 'bg-red-50 border-red-300 text-red-700'
+                  : 'bg-blue-50 border-blue-300 text-blue-700'
+              }`}
+            >
+              <option value="in_lavorazione">⏳ In lavorazione</option>
+              <option value="approvato">✓ Approvato</option>
+              <option value="rifiutato">✗ Rifiutato</option>
+            </select>
+          )}
+          
+          <button 
+            onClick={copyLink}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+          >
+            {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+            {copied ? 'Copiato!' : 'Copia link'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Left: Call */}
-        <section className="space-y-6">
+        <section className="space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-slate-800">
-                <Phone size={18} className="text-bylo-blue" />
+                <Phone size={16} className="text-bylo-blue" />
                 <h2>Conversazione Setter</h2>
               </div>
               {call && (
@@ -139,41 +347,41 @@ const LeadDetail: React.FC = () => {
               )}
             </div>
 
-            <div className="p-6">
+            <div className="p-5">
               {!call ? (
-                <div className="text-center py-8 text-slate-400">
-                  <Phone size={48} className="mx-auto mb-3 opacity-20" />
-                  <p>Nessuna chiamata registrata per questo numero.</p>
+                <div className="text-center py-6 text-slate-400">
+                  <Phone size={40} className="mx-auto mb-2 opacity-20" />
+                  <p className="text-sm">Nessuna chiamata registrata</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Metrics */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Esito</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 p-2.5 rounded-lg">
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1">Esito</div>
                       <Badge status={call.esito_qualificazione} type="qualification" />
                     </div>
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Durata</div>
+                    <div className="bg-slate-50 p-2.5 rounded-lg">
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1">Durata</div>
                       <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-                        <Clock size={14} />
+                        <Clock size={12} />
                         {formatDuration(call.durata_chiamata)}
                       </div>
                     </div>
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Urgenza</div>
+                    <div className="bg-slate-50 p-2.5 rounded-lg">
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1">Urgenza</div>
                       <Badge status={call.urgenza_cliente || 'sconosciuta'} type="urgency" />
                     </div>
-                    <div className="bg-slate-50 p-3 rounded-lg">
-                      <div className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Sentiment</div>
+                    <div className="bg-slate-50 p-2.5 rounded-lg">
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1">Sentiment</div>
                       <Badge status={call.sentiment_cliente || 'neutro'} type="sentiment" />
                     </div>
                   </div>
 
                   {/* Summary */}
-                  <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                      <FileText size={16} /> Riepilogo Chiamata
+                  <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3">
+                    <h3 className="text-xs font-semibold text-blue-900 mb-1.5 flex items-center gap-1.5">
+                      <FileText size={14} /> Riepilogo
                     </h3>
                     <p className="text-sm text-slate-700 leading-relaxed">
                       {call.riepilogo_chiamata || "Nessun riepilogo disponibile."}
@@ -181,25 +389,25 @@ const LeadDetail: React.FC = () => {
                   </div>
 
                   {/* Details */}
-                  <div className="space-y-4">
+                  <div className="space-y-3 text-sm">
                     {call.problematiche_immobile && (
                       <div>
-                        <span className="text-sm font-medium text-slate-900">Problematiche:</span>
-                        <p className="text-sm text-slate-600 mt-1">{call.problematiche_immobile}</p>
+                        <span className="font-medium text-slate-900">Problematiche:</span>
+                        <p className="text-slate-600 mt-0.5">{call.problematiche_immobile}</p>
                       </div>
                     )}
                     {call.obiezioni_cliente && (
                       <div>
-                        <span className="text-sm font-medium text-slate-900">Obiezioni:</span>
-                        <p className="text-sm text-slate-600 mt-1">{call.obiezioni_cliente}</p>
+                        <span className="font-medium text-slate-900">Obiezioni:</span>
+                        <p className="text-slate-600 mt-0.5">{call.obiezioni_cliente}</p>
                       </div>
                     )}
                     {call.esito_qualificazione === 'callback_richiesto' && (
-                      <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800 flex items-start gap-2">
-                        <Clock className="flex-shrink-0 mt-0.5" size={16} />
+                      <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-lg text-sm text-amber-800 flex items-start gap-2">
+                        <Clock className="flex-shrink-0 mt-0.5" size={14} />
                         <div>
-                          <span className="font-bold">Callback Richiesto:</span> {call.callback_orario || 'Orario non specificato'}
-                          {call.callback_motivo && <div className="mt-1 text-xs opacity-90">{call.callback_motivo}</div>}
+                          <span className="font-bold">Callback:</span> {call.callback_orario || 'Orario non specificato'}
+                          {call.callback_motivo && <div className="mt-0.5 text-xs opacity-90">{call.callback_motivo}</div>}
                         </div>
                       </div>
                     )}
@@ -214,36 +422,90 @@ const LeadDetail: React.FC = () => {
 
         {/* Right: Property */}
         <section className="space-y-4">
-          {/* Header Scheda Immobile */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-2 font-semibold text-slate-800">
-                <Building2 size={18} className="text-bylo-blue" />
-                <h2>Scheda Immobile</h2>
+          
+          {/* Step Processo Acquisizione */}
+          {property && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-bylo-blue/5 to-transparent">
+                <div className="flex items-center gap-2 font-semibold text-slate-800">
+                  <FileSignature size={16} className="text-bylo-blue" />
+                  <h2>Processo Acquisizione</h2>
+                </div>
               </div>
-              {property && <Badge status={property.status} type="property" />}
+              <div className="px-5 py-2">
+                <StepToggle
+                  label="Chiamata"
+                  icon={Phone}
+                  status={stepChiamata}
+                  setStatus={setStepChiamata}
+                  field="step_chiamata"
+                  pendingLabel="da_contattare"
+                  completedLabel="contattato"
+                />
+                <StepToggle
+                  label="Sopralluogo"
+                  icon={Home}
+                  status={stepSopralluogo}
+                  setStatus={setStepSopralluogo}
+                  field="step_sopralluogo"
+                  pendingLabel="da_organizzare"
+                  completedLabel="organizzato"
+                  showCalendar={true}
+                  calendarType="sopralluogo"
+                  dateValue={stepSopralluogoData}
+                  setDateValue={setStepSopralluogoData}
+                  dateField="step_sopralluogo_data"
+                />
+                <StepToggle
+                  label="Accordo"
+                  icon={Send}
+                  status={stepAccordo}
+                  setStatus={setStepAccordo}
+                  field="step_accordo"
+                  pendingLabel="da_inviare"
+                  completedLabel="inviato"
+                />
+                <StepToggle
+                  label="Preliminare"
+                  icon={FileSignature}
+                  status={stepPreliminare}
+                  setStatus={setStepPreliminare}
+                  field="step_preliminare"
+                  pendingLabel="da_organizzare"
+                  completedLabel="organizzato"
+                  showCalendar={true}
+                  calendarType="preliminare"
+                  dateValue={stepPreliminareData}
+                  setDateValue={setStepPreliminareData}
+                  dateField="step_preliminare_data"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {!property ? (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <div className="text-center py-8 text-slate-400">
-                <Building2 size={48} className="mx-auto mb-3 opacity-20" />
-                <p>Valutazione immobile non ancora disponibile.</p>
+              <div className="text-center py-6 text-slate-400">
+                <Building2 size={40} className="mx-auto mb-2 opacity-20" />
+                <p className="text-sm">Valutazione immobile non disponibile</p>
               </div>
             </div>
           ) : (
             <>
-              {/* Riquadro 1: Dettagli Immobile */}
+              {/* Dettagli Immobile */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-sm font-semibold text-slate-700">Dettagli Immobile</h3>
+                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-semibold text-slate-800">
+                    <Building2 size={16} className="text-bylo-blue" />
+                    <h2>Scheda Immobile</h2>
+                  </div>
+                  <Badge status={property.status} type="property" />
                 </div>
                 <div className="p-5">
                   {/* Address */}
-                  <div className="flex items-start gap-3 mb-4">
+                  <div className="flex items-start gap-3 mb-4 pb-4 border-b border-slate-100">
                     <div className="mt-0.5 bg-slate-100 p-2 rounded-lg text-slate-500">
-                      <MapPin size={18} />
+                      <MapPin size={16} />
                     </div>
                     <div>
                       <h4 className="font-semibold text-slate-900">{property.indirizzo_completo}</h4>
@@ -253,8 +515,28 @@ const LeadDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+                  {/* Details Grid - Tutti i dettagli */}
+                  <div className="grid grid-cols-2 gap-y-2.5 gap-x-6 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Tipologia</span>
+                      <span className="font-medium">{property.tipo_immobile || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Condizioni</span>
+                      <span className="font-medium">{property.condizioni_immobile || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Superficie</span>
+                      <span className="font-medium">{property.superficie_mq ? `${property.superficie_mq} mq` : '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Locali</span>
+                      <span className="font-medium">{property.numero_locali || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Bagni</span>
+                      <span className="font-medium">{property.numero_bagni || '-'}</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Piano</span>
                       <span className="font-medium">{property.piano_immobile || '-'}</span>
@@ -264,35 +546,35 @@ const LeadDetail: React.FC = () => {
                       <span className="font-medium">{property.ascensore || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Anno</span>
+                      <span className="text-slate-500">Anno costruzione</span>
                       <span className="font-medium">{property.anno_costruzione || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Bagni</span>
-                      <span className="font-medium">{property.numero_bagni || '-'}</span>
+                      <span className="text-slate-500">Aree esterne</span>
+                      <span className="font-medium">{property.aree_esterne || '-'}</span>
                     </div>
-                    <div className="flex justify-between col-span-2">
-                      <span className="text-slate-500">Condizioni</span>
-                      <span className="font-medium">{property.condizioni_immobile || '-'}</span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Pertinenze</span>
+                      <span className="font-medium">{property.pertinenze || '-'}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Riquadro 2: Valutazione Economica */}
+              {/* Valutazione Economica */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-slate-100 bg-emerald-50">
                   <h3 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
-                    <TrendingUp size={16} />
+                    <TrendingUp size={14} />
                     Valutazione Economica
                   </h3>
                 </div>
-                <div className="p-5">
-                  <div className="space-y-4">
-                    {/* Range Offerta - In evidenza */}
-                    <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-4">
-                      <div className="text-xs text-bylo-blue font-medium uppercase tracking-wide mb-1">Range Offerta</div>
-                      <div className="text-2xl font-bold text-bylo-blue">
+                <div className="p-4">
+                  <div className="space-y-3">
+                    {/* Range Offerta */}
+                    <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-3">
+                      <div className="text-[10px] text-bylo-blue font-medium uppercase tracking-wide mb-0.5">Range Offerta</div>
+                      <div className="text-xl font-bold text-bylo-blue">
                         {prezzoAcquistoMin && prezzoAcquistoMax 
                           ? `${formatCurrency(prezzoAcquistoMin)} - ${formatCurrency(prezzoAcquistoMax)}`
                           : '-'
@@ -301,64 +583,64 @@ const LeadDetail: React.FC = () => {
                     </div>
 
                     {/* Offerta Definitiva */}
-                    <div className={`rounded-lg p-4 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
-                      <div className={`text-xs font-medium uppercase tracking-wide mb-1 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
+                    <div className={`rounded-lg p-3 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
+                      <div className={`text-[10px] font-medium uppercase tracking-wide mb-0.5 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
                         Offerta Definitiva
                       </div>
-                      <div className={`text-2xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      <div className={`text-xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
                         {property.offerta_definitiva ? formatCurrency(property.offerta_definitiva) : 'Da definire'}
                       </div>
                     </div>
 
-                    {/* Prezzo Rivendita e Costi Riqualificazione */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-500 mb-1">Prezzo Rivendita</div>
-                        <div className="text-lg font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
+                    {/* Prezzo Rivendita e Costi */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-50 rounded-lg p-2.5">
+                        <div className="text-[10px] text-slate-500 mb-0.5">Prezzo Rivendita</div>
+                        <div className="text-base font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
                       </div>
-                      <div className="bg-slate-50 rounded-lg p-3">
-                        <div className="text-xs text-slate-500 mb-1">Costi Riqualificazione</div>
-                        <div className="text-lg font-semibold text-slate-900">{formatCurrency(property.totale_costi_escluso_acquisto)}</div>
+                      <div className="bg-slate-50 rounded-lg p-2.5">
+                        <div className="text-[10px] text-slate-500 mb-0.5">Costi Riqualificazione</div>
+                        <div className="text-base font-semibold text-slate-900">{formatCurrency(property.totale_costi_escluso_acquisto)}</div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Riquadro 3: Note Closer */}
+              {/* Note Closer */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-slate-100 bg-amber-50">
                   <h3 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                    <StickyNote size={16} />
+                    <StickyNote size={14} />
                     Note Closer
                   </h3>
                 </div>
-                <div className="p-5">
+                <div className="p-4">
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Aggiungi note su questo lead... (es. esito chiamata, accordi presi, prossimi passi)"
-                    className="w-full h-32 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
+                    placeholder="Aggiungi note su questo lead..."
+                    className="w-full h-24 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
                   />
-                  <div className="mt-3 flex justify-between items-center">
+                  <div className="mt-2 flex justify-between items-center">
                     <span className="text-xs text-slate-400">
                       {notesSaved ? (
                         <span className="text-emerald-600 flex items-center gap-1">
-                          <Check size={14} /> Note salvate!
+                          <Check size={12} /> Salvate!
                         </span>
                       ) : (
-                        'Clicca "Salva Note" per salvare'
+                        ''
                       )}
                     </span>
                     <button 
                       onClick={saveNotes}
                       disabled={savingNotes}
-                      className="px-4 py-2 text-sm font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                      className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {savingNotes ? (
                         <>
-                          <Loader2 size={14} className="animate-spin" />
-                          Salvataggio...
+                          <Loader2 size={12} className="animate-spin" />
+                          Salvo...
                         </>
                       ) : (
                         'Salva Note'

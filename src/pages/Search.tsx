@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, MapPin, Phone, Calendar, ArrowRight, Loader2, Users, X, Search as SearchIcon } from 'lucide-react';
+import { Filter, MapPin, Phone, Calendar, ArrowRight, Loader2, Users, X, Search as SearchIcon, Home, Clock } from 'lucide-react';
 import { getAllLeads } from '@/services/leadService';
 import { LeadSearchResult } from '@/types';
-import Badge from '@/components/Badge';
 import { formatDate } from '@/lib/utils';
 
 const Search: React.FC = () => {
@@ -54,12 +53,15 @@ const Search: React.FC = () => {
     // Filtro per stato
     if (statusFilter !== 'tutti') {
       result = result.filter(lead => {
-        const status = lead.status?.toLowerCase() || '';
-        if (statusFilter === 'qualificato') return status.includes('qualificato') && !status.includes('non');
-        if (statusFilter === 'non_qualificato') return status.includes('non') || status.includes('rifiuta');
-        if (statusFilter === 'callback') return status.includes('callback');
-        if (statusFilter === 'approvato') return status === 'approvato' || status === 'approved';
-        if (statusFilter === 'in_attesa') return status === 'in attesa' || status === 'pending';
+        const callStatus = lead.callStatus?.toLowerCase() || '';
+        const closerStatus = lead.closerStatus?.toLowerCase() || '';
+        
+        if (statusFilter === 'qualificato') return callStatus.includes('qualificato') && !callStatus.includes('non');
+        if (statusFilter === 'non_qualificato') return callStatus.includes('non') || callStatus.includes('rifiuta');
+        if (statusFilter === 'callback') return callStatus.includes('callback');
+        if (statusFilter === 'in_lavorazione') return closerStatus === 'in_lavorazione';
+        if (statusFilter === 'approvato') return closerStatus === 'approvato';
+        if (statusFilter === 'rifiutato') return closerStatus === 'rifiutato';
         return true;
       });
     }
@@ -103,53 +105,135 @@ const Search: React.FC = () => {
 
   const hasActiveFilters = searchText || statusFilter !== 'tutti' || dateFilter !== 'tutti';
 
-  // Componente card compatta per i lead
+  // Badge per stato chiamata
+  const CallStatusBadge = ({ status }: { status?: string }) => {
+    const normalized = status?.toLowerCase() || '';
+    let colorClass = 'bg-slate-100 text-slate-500';
+    let label = 'N/D';
+
+    if (normalized.includes('qualificato') && !normalized.includes('non')) {
+      colorClass = 'bg-emerald-100 text-emerald-700';
+      label = 'Qualificato';
+    } else if (normalized.includes('non') || normalized.includes('rifiuta')) {
+      colorClass = 'bg-red-100 text-red-700';
+      label = 'Non qualificato';
+    } else if (normalized.includes('callback')) {
+      colorClass = 'bg-amber-100 text-amber-700';
+      label = 'Callback';
+    } else if (normalized.includes('non risponde')) {
+      colorClass = 'bg-slate-100 text-slate-600';
+      label = 'Non risponde';
+    }
+
+    return (
+      <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${colorClass}`}>
+        {label}
+      </span>
+    );
+  };
+
+  // Badge per stato property
+  const PropertyStatusBadge = ({ status }: { status?: string }) => {
+    const normalized = status?.toLowerCase() || '';
+    let colorClass = 'bg-slate-100 text-slate-500';
+    let label = 'N/D';
+
+    if (normalized === 'approved' || normalized === 'approvato') {
+      colorClass = 'bg-emerald-100 text-emerald-700';
+      label = 'Approvato';
+    } else if (normalized === 'pending' || normalized === 'in attesa') {
+      colorClass = 'bg-amber-100 text-amber-700';
+      label = 'Pending';
+    }
+
+    return (
+      <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${colorClass}`}>
+        {label}
+      </span>
+    );
+  };
+
+  // Badge per stato closer
+  const CloserStatusBadge = ({ status }: { status?: string }) => {
+    const normalized = status?.toLowerCase() || 'in_lavorazione';
+    let colorClass = 'bg-blue-100 text-blue-700 border border-blue-200';
+    let label = 'In lavorazione';
+
+    if (normalized === 'approvato') {
+      colorClass = 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+      label = 'Approvato';
+    } else if (normalized === 'rifiutato') {
+      colorClass = 'bg-red-100 text-red-700 border border-red-200';
+      label = 'Rifiutato';
+    }
+
+    return (
+      <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${colorClass}`}>
+        {label}
+      </span>
+    );
+  };
+
+  // Componente card per i lead
   const LeadCard = ({ lead }: { lead: LeadSearchResult }) => (
     <div
       onClick={() => navigate(`/lead/${lead.id}`)}
-      className="group bg-white rounded-lg px-4 py-3 border border-slate-200 shadow-sm hover:shadow-md hover:border-bylo-blue transition-all cursor-pointer"
+      className="group bg-white rounded-xl px-5 py-4 border border-slate-200 shadow-sm hover:shadow-lg hover:border-bylo-blue/50 transition-all cursor-pointer"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <h3 className="font-semibold text-slate-900 group-hover:text-bylo-blue transition-colors truncate">
+      <div className="flex items-center justify-between gap-4">
+        {/* Parte sinistra: Nome + Stati */}
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          {/* Nome */}
+          <h3 className="font-semibold text-slate-900 group-hover:text-bylo-blue transition-colors truncate min-w-[140px]">
             {lead.name || 'Nome sconosciuto'}
           </h3>
-          {lead.status && <Badge status={lead.status} />}
+          
+          {/* Stato Chiamata */}
+          <div className="flex items-center gap-1.5">
+            <Phone size={14} className="text-slate-400" />
+            <CallStatusBadge status={lead.callStatus} />
+          </div>
+          
+          {/* Stato Immobile */}
+          <div className="flex items-center gap-1.5">
+            <Home size={14} className="text-slate-400" />
+            <PropertyStatusBadge status={lead.propertyStatus} />
+          </div>
         </div>
         
-        <div className="flex items-center gap-4 text-sm text-slate-500 flex-shrink-0">
+        {/* Parte centrale: Info aggiuntive */}
+        <div className="hidden lg:flex items-center gap-4 text-sm text-slate-500">
           {lead.phone && (
-            <div className="hidden sm:flex items-center gap-1.5">
-              <Phone size={13} />
-              <span>{lead.phone}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">{lead.phone}</span>
             </div>
           )}
           {lead.address && (
-            <div className="hidden md:flex items-center gap-1.5">
-              <MapPin size={13} />
-              <span className="truncate max-w-[150px]">{lead.address}</span>
+            <div className="flex items-center gap-1.5">
+              <MapPin size={13} className="text-slate-400" />
+              <span className="truncate max-w-[180px]">{lead.address}</span>
             </div>
           )}
           {lead.lastInteraction && (
-            <div className="hidden lg:flex items-center gap-1.5">
-              <Calendar size={13} />
+            <div className="flex items-center gap-1.5">
+              <Clock size={13} className="text-slate-400" />
               <span>{formatDate(lead.lastInteraction)}</span>
             </div>
           )}
-          
-          <div className="flex gap-1">
-            {lead.hasCall && <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-medium">Chiamata</span>}
-            {lead.hasProperty && <span className="bg-purple-100 text-purple-700 text-[10px] px-2 py-0.5 rounded font-medium">Immobile</span>}
-          </div>
-          
-          <ArrowRight size={16} className="text-slate-300 group-hover:text-bylo-blue" />
+        </div>
+
+        {/* Parte destra: Stato Closer + Freccia */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <CloserStatusBadge status={lead.closerStatus} />
+          <ArrowRight size={18} className="text-slate-300 group-hover:text-bylo-blue transition-colors" />
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Gestione Lead</h1>
         <p className="text-slate-500">
@@ -157,18 +241,22 @@ const Search: React.FC = () => {
         </p>
       </div>
 
-      {/* Barra Filtri */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter size={18} className="text-slate-500" />
-          <span className="font-medium text-slate-700">Filtri</span>
+      {/* Barra Filtri Curata */}
+      <div className="bg-gradient-to-r from-slate-50 to-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-bylo-blue/10 rounded-lg">
+              <Filter size={18} className="text-bylo-blue" />
+            </div>
+            <span className="font-semibold text-slate-800">Filtri di ricerca</span>
+          </div>
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="ml-auto text-xs text-bylo-blue hover:underline flex items-center gap-1"
+              className="text-sm text-slate-500 hover:text-bylo-blue flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              <X size={12} />
-              Reset filtri
+              <X size={14} />
+              Reset
             </button>
           )}
         </div>
@@ -176,43 +264,59 @@ const Search: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Ricerca testuale */}
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <SearchIcon className="h-4 w-4 text-slate-400" />
+            <label className="block text-xs font-medium text-slate-500 mb-1.5 ml-1">Cerca</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <SearchIcon className="h-4 w-4 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Nome, telefono, indirizzo..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="block w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bylo-blue/20 focus:border-bylo-blue transition-all"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Nome, telefono, indirizzo..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="block w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-            />
           </div>
 
           {/* Filtro stato */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="block w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-          >
-            <option value="tutti">Tutti gli stati</option>
-            <option value="qualificato">Qualificato</option>
-            <option value="non_qualificato">Non qualificato</option>
-            <option value="callback">Callback richiesto</option>
-            <option value="approvato">Approvato</option>
-            <option value="in_attesa">In attesa</option>
-          </select>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5 ml-1">Stato</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="block w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bylo-blue/20 focus:border-bylo-blue transition-all appearance-none cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+            >
+              <option value="tutti">Tutti gli stati</option>
+              <optgroup label="Stato Chiamata">
+                <option value="qualificato">✓ Qualificato</option>
+                <option value="non_qualificato">✗ Non qualificato</option>
+                <option value="callback">↻ Callback</option>
+              </optgroup>
+              <optgroup label="Stato Closer">
+                <option value="in_lavorazione">⏳ In lavorazione</option>
+                <option value="approvato">✓ Approvato</option>
+                <option value="rifiutato">✗ Rifiutato</option>
+              </optgroup>
+            </select>
+          </div>
 
           {/* Filtro data */}
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="block w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-          >
-            <option value="tutti">Qualsiasi data</option>
-            <option value="oggi">Oggi</option>
-            <option value="settimana">Ultima settimana</option>
-            <option value="mese">Ultimo mese</option>
-          </select>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5 ml-1">Periodo</label>
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="block w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-bylo-blue/20 focus:border-bylo-blue transition-all appearance-none cursor-pointer"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+            >
+              <option value="tutti">Qualsiasi data</option>
+              <option value="oggi">Oggi</option>
+              <option value="settimana">Ultima settimana</option>
+              <option value="mese">Ultimo mese</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -221,8 +325,8 @@ const Search: React.FC = () => {
         <div className="flex items-center gap-2 mb-4">
           <Users className="h-5 w-5 text-slate-400" />
           <h2 className="text-lg font-semibold text-slate-700">Lead</h2>
-          <span className="text-sm text-slate-400">
-            ({filteredLeads.length}{hasActiveFilters ? ` di ${allLeads.length}` : ''})
+          <span className="text-sm text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+            {filteredLeads.length}{hasActiveFilters ? ` di ${allLeads.length}` : ''}
           </span>
         </div>
 
@@ -248,7 +352,7 @@ const Search: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {filteredLeads.map((lead) => (
               <LeadCard key={lead.id} lead={lead} />
             ))}

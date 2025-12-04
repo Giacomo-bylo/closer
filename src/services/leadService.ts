@@ -30,6 +30,9 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
       address: p.indirizzo_completo,
       lastInteraction: p.updated_at || p.created_at,
       status: p.status === 'approved' ? 'Approvato' : 'In attesa',
+      callStatus: undefined,
+      propertyStatus: p.status,
+      closerStatus: p.closer_status || 'in_lavorazione',
       hasProperty: true,
       hasCall: false,
     });
@@ -41,7 +44,7 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
 
     if (existing) {
       existing.hasCall = true;
-      existing.status = c.esito_qualificazione;
+      existing.callStatus = c.esito_qualificazione;
       if (new Date(c.created_at) > new Date(existing.lastInteraction)) {
         existing.lastInteraction = c.created_at;
       }
@@ -55,6 +58,9 @@ export const getAllLeads = async (): Promise<LeadSearchResult[]> => {
         address: undefined,
         lastInteraction: c.created_at,
         status: c.esito_qualificazione,
+        callStatus: c.esito_qualificazione,
+        propertyStatus: undefined,
+        closerStatus: 'in_lavorazione',
         hasProperty: false,
         hasCall: true,
       });
@@ -108,6 +114,9 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
       address: p.indirizzo_completo,
       lastInteraction: p.updated_at || p.created_at,
       status: p.status === 'approved' ? 'Approvato' : 'In attesa',
+      callStatus: undefined,
+      propertyStatus: p.status,
+      closerStatus: p.closer_status || 'in_lavorazione',
       hasProperty: true,
       hasCall: false,
     });
@@ -119,7 +128,7 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
 
     if (existing) {
       existing.hasCall = true;
-      existing.status = c.esito_qualificazione;
+      existing.callStatus = c.esito_qualificazione;
       if (new Date(c.created_at) > new Date(existing.lastInteraction)) {
         existing.lastInteraction = c.created_at;
       }
@@ -133,6 +142,9 @@ export const searchLeads = async (query: string): Promise<LeadSearchResult[]> =>
         address: undefined,
         lastInteraction: c.created_at,
         status: c.esito_qualificazione,
+        callStatus: c.esito_qualificazione,
+        propertyStatus: undefined,
+        closerStatus: 'in_lavorazione',
         hasProperty: false,
         hasCall: true,
       });
