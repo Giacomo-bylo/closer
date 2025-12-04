@@ -1,12 +1,17 @@
 import React from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabaseConto } from '@/lib/supabase';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const handleLogout = async () => {
+    await supabaseConto.auth.signOut();
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -20,6 +25,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <span className="font-bold text-xl text-slate-900">Closer</span>
               <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Bylo</span>
             </Link>
+            
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut size={18} />
+              <span className="hidden sm:inline">Esci</span>
+            </button>
           </div>
         </div>
       </header>
