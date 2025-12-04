@@ -6,6 +6,7 @@ import { supabaseConto } from '@/lib/supabase';
 import { LeadFullProfile } from '@/types';
 import Badge from '@/components/Badge';
 import TranscriptViewer from '@/components/TranscriptViewer';
+import CalendarBooking from '@/components/CalendarBooking';
 import { formatDate, formatCurrency, formatDuration } from '@/lib/utils';
 
 const LeadDetail: React.FC = () => {
@@ -606,6 +607,14 @@ const LeadDetail: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Prenota Appuntamento */}
+              <CalendarBooking
+                leadName={leadName}
+                leadPhone={leadPhone}
+                leadAddress={property.indirizzo_completo}
+                propertyId={property.id}
+              />
 
               {/* Note Closer */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
