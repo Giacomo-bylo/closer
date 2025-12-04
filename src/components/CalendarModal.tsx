@@ -58,7 +58,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
     scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
   });
 
-  // Carica eventi del mese
   const loadMonthEvents = async () => {
     if (!getAccessToken()) return;
 
@@ -79,7 +78,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
     }
   };
 
-  // Carica eventi e slot del giorno selezionato
   const loadDayDetails = (date: Date) => {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -104,12 +102,11 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
   }, [currentMonth, isAuthenticated, isOpen]);
 
   useEffect(() => {
-    if (selectedDate && monthEvents.length >= 0) {
+    if (selectedDate) {
       loadDayDetails(selectedDate);
     }
   }, [selectedDate, monthEvents]);
 
-  // Reset quando si chiude
   useEffect(() => {
     if (!isOpen) {
       setSelectedDate(null);
@@ -165,17 +162,16 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
 
       setSuccess(true);
       
-      // Formatta la data per salvarla
       const formattedDate = selectedDate.toISOString().split('T')[0];
       
-      // Chiama callback dopo 1.5 secondi
       setTimeout(() => {
         onEventCreated(formattedDate);
         onClose();
       }, 1500);
 
-    } catch (err: any) {
-      setError(err.message || 'Errore nella prenotazione');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Errore nella prenotazione';
+      setError(errorMessage);
     } finally {
       setBooking(false);
     }
@@ -222,27 +218,23 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
     }).length;
   };
 
-  // Genera griglia del mese
-  const generateMonthGrid = () => {
+  const generateMonthGrid = (): Date[] => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     
-    // Giorno della settimana del primo giorno (0 = domenica, 1 = lunedì, ...)
     let startDayOfWeek = firstDay.getDay();
-    // Converti a lunedì = 0
     startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
     
-    const days: (Date | null)[] = [];
+    const days: Date[] = [];
     
-    // Giorni vuoti prima del primo giorno
-    for (let i = 0; i < startDayOfWeek; i++) {
-      days.push(null);
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const placeholderDate = new Date(year, month, -i);
+      days.push(placeholderDate);
     }
     
-    // Giorni del mese
     for (let d = 1; d <= lastDay.getDate(); d++) {
       days.push(new Date(year, month, d));
     }
@@ -257,15 +249,12 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-bylo-blue to-blue-600 text-white flex items-center justify-between">
           <h3 className="font-semibold flex items-center gap-2">
             <Calendar size={18} />
@@ -279,7 +268,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-5 overflow-y-auto flex-1">
           {!isAuthenticated ? (
             <div className="text-center py-8">
@@ -297,7 +285,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
             </div>
           ) : (
             <>
-              {/* Error/Success Messages */}
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
                   <X size={16} />
@@ -311,7 +298,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                 </div>
               )}
 
-              {/* Month Navigation */}
               <div className="flex items-center justify-between mb-4">
                 <button
                   onClick={() => handleMonthChange(-1)}
@@ -331,14 +317,12 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                 </button>
               </div>
 
-              {/* Calendar Grid */}
               {loading ? (
                 <div className="flex justify-center py-12">
                   <Loader2 className="animate-spin h-8 w-8 text-bylo-blue" />
                 </div>
               ) : !selectedDate ? (
                 <>
-                  {/* Week day headers */}
                   <div className="grid grid-cols-7 gap-1 mb-2">
                     {weekDayNames.map((name, i) => (
                       <div key={i} className="text-center text-xs font-medium text-slate-500 py-1">
@@ -347,18 +331,18 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                     ))}
                   </div>
 
-                  {/* Days grid */}
                   <div className="grid grid-cols-7 gap-1">
                     {monthDays.map((day, index) => {
-                      if (!day) {
+                      const isCurrentMonthDay = day.getMonth() === currentMonth.getMonth();
+                      
+                      if (!isCurrentMonthDay) {
                         return <div key={index} className="aspect-square" />;
                       }
 
-                      const currentDay: Date = day;
-                      const eventsCount = getEventsCountForDay(currentDay);
-                      const past = isPast(currentDay);
-                      const today = isToday(currentDay);
-                      const selected = selectedDate !== null && selectedDate.toDateString() === currentDay.toDateString();
+                      const eventsCount = getEventsCountForDay(day);
+                      const past = isPast(day);
+                      const today = isToday(day);
+                      const selected = selectedDate !== null && selectedDate.toDateString() === day.toDateString();
 
                       return (
                         <button
@@ -390,7 +374,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                   </div>
                 </>
               ) : (
-                /* Day Detail View */
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="font-semibold text-slate-800 capitalize">
@@ -407,7 +390,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                     </button>
                   </div>
 
-                  {/* Impegni del giorno */}
                   {dayEvents.length > 0 && (
                     <div className="mb-4">
                       <div className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
@@ -433,7 +415,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                     </div>
                   )}
 
-                  {/* Slot disponibili */}
                   <div className="mb-4">
                     <div className="text-xs font-medium text-slate-500 mb-2">
                       Slot disponibili
@@ -459,7 +440,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Selected Slot Summary */}
                   {selectedSlot && (
                     <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-4">
                       <div className="flex items-center gap-2 text-sm text-blue-800">
@@ -471,7 +451,6 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
                     </div>
                   )}
 
-                  {/* Book Button */}
                   <button
                     onClick={handleBookAppointment}
                     disabled={!selectedSlot || booking || success}
