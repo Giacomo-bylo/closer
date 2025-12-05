@@ -1,18 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
-import { Calendar, Clock, Check, X, Loader2, LogIn, ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  fetchCalendarEvents,
-  createCalendarEvent,
-  generateTimeSlots,
-  setAccessToken,
-  getAccessToken,
-  CalendarEvent,
-  TimeSlot,
-} from '@/services/googleCalendarService';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from 'react';
+import { Calendar, X, Check, Loader2 } from 'lucide-react';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+// URLs Calendly
+const CALENDLY_URLS = {
+  sopralluogo: 'https://calendly.com/bylo/sopralluogo',
+  preliminare: 'https://calendly.com/bylo/preliminare',
+};
 
 interface CalendarModalProps {
   isOpen: boolean;
@@ -25,60 +18,7 @@ interface CalendarModalProps {
   propertyId?: string;
 }
 
-// Interfaccia per i dati del giorno nella griglia
-interface DayData {
-  dayNumber: number;
-  fullDate: Date;
-  isCurrentMonth: boolean;
-  dateString: string;
-}
-
-// Componente separato per il singolo giorno - evita problemi di type inference
-interface DayButtonProps {
-  dayData: DayData;
-  eventsCount: number;
-  isPastDay: boolean;
-  isTodayDay: boolean;
-  isSelectedDay: boolean;
-  onSelect: (date: Date) => void;
-}
-
-const DayButton: React.FC<DayButtonProps> = ({
-  dayData,
-  eventsCount,
-  isPastDay,
-  isTodayDay,
-  isSelectedDay,
-  onSelect,
-}) => {
-  if (!dayData.isCurrentMonth) {
-    return <div className="aspect-square" />;
-  }
-
-  return (
-    <button
-      onClick={() => onSelect(dayData.fullDate)}
-      disabled={isPastDay}
-      className={cn(
-        'aspect-square flex flex-col items-center justify-center rounded-lg transition-all text-sm relative',
-        isPastDay && 'opacity-30 cursor-not-allowed text-slate-400',
-        !isPastDay && !isSelectedDay && 'hover:bg-slate-100 cursor-pointer',
-        isSelectedDay && 'bg-bylo-blue text-white',
-        isTodayDay && !isSelectedDay && 'ring-2 ring-bylo-blue font-bold'
-      )}
-    >
-      <span>{dayData.dayNumber}</span>
-      {eventsCount > 0 && (
-        <span className={cn(
-          'absolute bottom-1 w-1.5 h-1.5 rounded-full',
-          isSelectedDay ? 'bg-white' : 'bg-amber-500'
-        )} />
-      )}
-    </button>
-  );
-};
-
-const CalendarModalInner: React.FC<CalendarModalProps> = ({
+const CalendarModal: React.FC<CalendarModalProps> = ({
   isOpen,
   onClose,
   onEventCreated,
@@ -86,245 +26,74 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
   leadName,
   leadPhone,
   leadAddress,
-  propertyId,
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getAccessToken());
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>([]);
-  const [dayEvents, setDayEvents] = useState<CalendarEvent[]>([]);
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [booking, setBooking] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [eventScheduled, setEventScheduled] = useState(false);
 
-  const login = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      setAccessToken(tokenResponse.access_token);
-      setIsAuthenticated(true);
-    },
-    onError: () => {
-      setError('Errore durante l\'autenticazione con Google');
-    },
-    scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events',
-  });
-
-  const loadMonthEvents = useCallback(async (): Promise<void> => {
-    if (!getAccessToken()) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      const startOfMonth = new Date(year, month, 1);
-      const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
-
-      const fetchedEvents = await fetchCalendarEvents(startOfMonth, endOfMonth);
-      setMonthEvents(fetchedEvents);
-    } catch (err) {
-      setError('Errore nel caricamento degli eventi');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentMonth]);
-
-  const loadDayDetails = useCallback((date: Date): void => {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
+  // Costruisce l'URL con prefill dei dati
+  const buildCalendlyUrl = (): string => {
+    const baseUrl = CALENDLY_URLS[eventType];
+    const params = new URLSearchParams();
     
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const eventsOfDay = monthEvents.filter((event: CalendarEvent) => {
-      const eventStart = new Date(event.start);
-      return eventStart >= startOfDay && eventStart <= endOfDay;
-    });
+    // Prefill nome e telefono
+    if (leadName) {
+      const nameParts = leadName.trim().split(' ');
+      params.append('name', leadName);
+      if (nameParts.length > 1) {
+        params.append('first_name', nameParts[0]);
+        params.append('last_name', nameParts.slice(1).join(' '));
+      }
+    }
     
-    setDayEvents(eventsOfDay);
-    const generatedSlots = generateTimeSlots(date, monthEvents);
-    setSlots(generatedSlots);
-  }, [monthEvents]);
-
-  useEffect(() => {
-    if (isAuthenticated && isOpen) {
-      loadMonthEvents();
+    // Aggiungi location se disponibile
+    if (leadAddress) {
+      params.append('location', leadAddress);
     }
-  }, [currentMonth, isAuthenticated, isOpen, loadMonthEvents]);
-
-  useEffect(() => {
-    if (selectedDate !== null) {
-      loadDayDetails(selectedDate);
+    
+    // Custom questions (se configurate in Calendly)
+    if (leadPhone) {
+      params.append('a1', leadPhone); // Primo campo custom
     }
-  }, [selectedDate, loadDayDetails]);
+    
+    const queryString = params.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  };
 
+  // Listener per eventi Calendly
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleCalendlyEvent = (e: MessageEvent) => {
+      if (e.data.event === 'calendly.event_scheduled') {
+        setEventScheduled(true);
+        
+        // Estrai la data dall'evento se disponibile
+        const eventData = e.data.payload;
+        let scheduledDate = new Date().toISOString().split('T')[0];
+        
+        if (eventData?.event?.start_time) {
+          scheduledDate = new Date(eventData.event.start_time).toISOString().split('T')[0];
+        }
+        
+        // Notifica dopo un breve delay per mostrare il successo
+        setTimeout(() => {
+          onEventCreated(scheduledDate);
+          onClose();
+        }, 1500);
+      }
+    };
+
+    window.addEventListener('message', handleCalendlyEvent);
+    return () => window.removeEventListener('message', handleCalendlyEvent);
+  }, [isOpen, onEventCreated, onClose]);
+
+  // Reset stato quando si chiude
   useEffect(() => {
     if (!isOpen) {
-      setSelectedDate(null);
-      setSelectedSlot(null);
-      setSuccess(false);
-      setError(null);
+      setLoading(true);
+      setEventScheduled(false);
     }
   }, [isOpen]);
-
-  const handleMonthChange = (direction: number): void => {
-    const newMonth = new Date(currentMonth);
-    newMonth.setMonth(newMonth.getMonth() + direction);
-    
-    const today = new Date();
-    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    if (newMonth >= thisMonth) {
-      setCurrentMonth(newMonth);
-      setSelectedDate(null);
-      setSelectedSlot(null);
-    }
-  };
-
-  const handleDaySelect = (date: Date): void => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (date >= today) {
-      setSelectedDate(date);
-      setSelectedSlot(null);
-    }
-  };
-
-  const handleBookAppointment = async (): Promise<void> => {
-    if (selectedSlot === null || selectedDate === null) return;
-
-    setBooking(true);
-    setError(null);
-
-    try {
-      const eventTitle = eventType === 'sopralluogo' 
-        ? `Sopralluogo - ${leadName}`
-        : `Preliminare - ${leadName}`;
-      
-      let description = eventType === 'sopralluogo' ? 'Sopralluogo immobile' : 'Firma preliminare';
-      description += `\n\nLead: ${leadName}\nTelefono: ${leadPhone}`;
-      if (leadAddress) {
-        description += `\nIndirizzo: ${leadAddress}`;
-      }
-      if (propertyId) {
-        description += `\nID Proprietà: ${propertyId}`;
-      }
-
-      await createCalendarEvent(
-        eventTitle,
-        description,
-        selectedSlot.start,
-        selectedSlot.end
-      );
-
-      setSuccess(true);
-      
-      const formattedDate = selectedDate.toISOString().split('T')[0];
-      
-      setTimeout(() => {
-        onEventCreated(formattedDate);
-        onClose();
-      }, 1500);
-
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Errore nella prenotazione';
-      setError(errorMessage);
-    } finally {
-      setBooking(false);
-    }
-  };
-
-  const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatMonthYear = (date: Date): string => {
-    return date.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
-  };
-
-  const formatSelectedDate = (date: Date): string => {
-    return date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-  };
-
-  const checkIsToday = (dateString: string): boolean => {
-    const today = new Date();
-    return dateString === today.toDateString();
-  };
-
-  const checkIsPast = (date: Date): boolean => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
-  };
-
-  const isCurrentMonth = (): boolean => {
-    const today = new Date();
-    return currentMonth.getMonth() === today.getMonth() && 
-           currentMonth.getFullYear() === today.getFullYear();
-  };
-
-  const getEventsCountForDay = (dateString: string): number => {
-    const targetDate = new Date(dateString);
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    return monthEvents.filter((event: CalendarEvent) => {
-      const eventStart = new Date(event.start);
-      return eventStart >= startOfDay && eventStart <= endOfDay;
-    }).length;
-  };
-
-  // Genera griglia del mese con dati pre-calcolati
-  const generateMonthGrid = (): DayData[] => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    // Calcola il giorno della settimana (lunedì = 0)
-    let startDayOfWeek = firstDay.getDay();
-    startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
-    
-    const days: DayData[] = [];
-    
-    // Giorni del mese precedente come placeholder
-    for (let i = startDayOfWeek - 1; i >= 0; i--) {
-      const placeholderDate = new Date(year, month, -i);
-      days.push({
-        dayNumber: placeholderDate.getDate(),
-        fullDate: placeholderDate,
-        isCurrentMonth: false,
-        dateString: placeholderDate.toDateString(),
-      });
-    }
-    
-    // Giorni del mese corrente
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-      const currentDate = new Date(year, month, d);
-      days.push({
-        dayNumber: d,
-        fullDate: currentDate,
-        isCurrentMonth: true,
-        dateString: currentDate.toDateString(),
-      });
-    }
-    
-    return days;
-  };
-
-  const monthDays: DayData[] = generateMonthGrid();
-  const weekDayNames = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-  
-  // Pre-calcola selectedDateString per evitare problemi di narrowing
-  const selectedDateString: string = selectedDate !== null ? selectedDate.toDateString() : '';
 
   if (!isOpen) return null;
 
@@ -336,10 +105,10 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
         onClick={onClose}
       />
       
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      {/* Modal - dimensione fissa */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 h-[700px] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-bylo-blue to-blue-600 text-white flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-bylo-blue to-blue-600 text-white flex items-center justify-between flex-shrink-0">
           <h3 className="font-semibold flex items-center gap-2">
             <Calendar size={18} />
             {eventType === 'sopralluogo' ? 'Prenota Sopralluogo' : 'Prenota Preliminare'}
@@ -352,214 +121,42 @@ const CalendarModalInner: React.FC<CalendarModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-5 overflow-y-auto flex-1">
-          {!isAuthenticated ? (
-            <div className="text-center py-8">
-              <Calendar size={48} className="mx-auto mb-4 text-slate-300" />
-              <p className="text-slate-600 mb-4">
-                Connetti Google Calendar per vedere la disponibilità
-              </p>
-              <button
-                onClick={() => login()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-bylo-blue text-white rounded-lg hover:bg-bylo-hover transition-colors font-medium"
-              >
-                <LogIn size={18} />
-                Connetti Google Calendar
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Error */}
-              {error !== null && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
-                  <X size={16} />
-                  {error}
-                </div>
-              )}
-
-              {/* Success */}
-              {success && (
-                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700 flex items-center gap-2">
-                  <Check size={16} />
-                  Appuntamento prenotato con successo!
-                </div>
-              )}
-
-              {/* Month Navigation */}
-              <div className="flex items-center justify-between mb-4">
-                <button
-                  onClick={() => handleMonthChange(-1)}
-                  disabled={isCurrentMonth()}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <div className="font-semibold text-slate-900 capitalize">
-                  {formatMonthYear(currentMonth)}
-                </div>
-                <button
-                  onClick={() => handleMonthChange(1)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  <ChevronRight size={20} />
-                </button>
+        {/* Content - altezza fissa */}
+        <div className="flex-1 relative min-h-0">
+          {/* Success overlay */}
+          {eventScheduled && (
+            <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                <Check size={32} className="text-emerald-600" />
               </div>
-
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="animate-spin h-8 w-8 text-bylo-blue" />
-                </div>
-              ) : selectedDate === null ? (
-                <>
-                  {/* Weekday Headers */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {weekDayNames.map((name, i) => (
-                      <div key={i} className="text-center text-xs font-medium text-slate-500 py-1">
-                        {name}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {monthDays.map((dayData: DayData, index: number) => (
-                      <DayButton
-                        key={index}
-                        dayData={dayData}
-                        eventsCount={getEventsCountForDay(dayData.dateString)}
-                        isPastDay={checkIsPast(dayData.fullDate)}
-                        isTodayDay={checkIsToday(dayData.dateString)}
-                        isSelectedDay={selectedDateString === dayData.dateString}
-                        onSelect={handleDaySelect}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="mt-4 text-center text-sm text-slate-500">
-                    Seleziona un giorno per vedere gli slot disponibili
-                  </div>
-                </>
-              ) : (
-                /* Day Detail View */
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-semibold text-slate-800 capitalize">
-                      {formatSelectedDate(selectedDate)}
-                    </h4>
-                    <button
-                      onClick={() => {
-                        setSelectedDate(null);
-                        setSelectedSlot(null);
-                      }}
-                      className="text-sm text-bylo-blue hover:underline"
-                    >
-                      ← Torna al mese
-                    </button>
-                  </div>
-
-                  {/* Existing Events */}
-                  {dayEvents.length > 0 && (
-                    <div className="mb-4">
-                      <div className="text-xs font-medium text-slate-500 mb-2 flex items-center gap-1">
-                        <Clock size={12} />
-                        Impegni esistenti ({dayEvents.length})
-                      </div>
-                      <div className="space-y-1.5 max-h-24 overflow-y-auto">
-                        {dayEvents.map((event: CalendarEvent, idx: number) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-2 p-2 bg-red-50 border border-red-100 rounded-lg text-xs"
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-red-900 truncate">{event.summary}</div>
-                              <div className="text-red-600">
-                                {formatTime(event.start)} - {formatTime(event.end)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Time Slots */}
-                  <div className="mb-4">
-                    <div className="text-xs font-medium text-slate-500 mb-2">
-                      Slot disponibili
-                    </div>
-                    <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto">
-                      {slots.map((slot: TimeSlot, index: number) => (
-                        <button
-                          key={index}
-                          onClick={() => slot.available && setSelectedSlot(slot)}
-                          disabled={!slot.available}
-                          className={cn(
-                            'p-2 rounded-lg text-xs font-medium transition-all',
-                            slot.available
-                              ? selectedSlot !== null && selectedSlot.start.getTime() === slot.start.getTime()
-                                ? 'bg-bylo-blue text-white'
-                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
-                              : 'bg-slate-100 text-slate-400 cursor-not-allowed line-through'
-                          )}
-                        >
-                          {formatTime(slot.start)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Selected Slot Summary */}
-                  {selectedSlot !== null && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-blue-800">
-                        <Clock size={14} />
-                        <span>
-                          Slot: <strong>{formatTime(selectedSlot.start)} - {formatTime(selectedSlot.end)}</strong>
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Book Button */}
-                  <button
-                    onClick={handleBookAppointment}
-                    disabled={selectedSlot === null || booking || success}
-                    className="w-full py-3 bg-bylo-blue text-white rounded-lg font-medium hover:bg-bylo-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {booking ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Prenotazione in corso...
-                      </>
-                    ) : success ? (
-                      <>
-                        <Check size={18} />
-                        Prenotato!
-                      </>
-                    ) : (
-                      <>
-                        <Check size={18} />
-                        Conferma {eventType === 'sopralluogo' ? 'Sopralluogo' : 'Preliminare'}
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </>
+              <h4 className="text-xl font-semibold text-slate-900 mb-2">Appuntamento Prenotato!</h4>
+              <p className="text-slate-500">Chiusura automatica...</p>
+            </div>
           )}
+
+          {/* Loading indicator */}
+          {loading && !eventScheduled && (
+            <div className="absolute inset-0 bg-white z-5 flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 size={32} className="animate-spin text-bylo-blue mx-auto mb-3" />
+                <p className="text-slate-500 text-sm">Caricamento calendario...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Calendly iframe */}
+          <iframe
+            src={buildCalendlyUrl()}
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            title="Calendly Scheduling"
+            onLoad={() => setLoading(false)}
+            className="w-full h-full"
+          />
         </div>
       </div>
     </div>
-  );
-};
-
-const CalendarModal: React.FC<CalendarModalProps> = (props) => {
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <CalendarModalInner {...props} />
-    </GoogleOAuthProvider>
   );
 };
 

@@ -25,9 +25,11 @@ const LeadDetail: React.FC = () => {
   
   // Stati per gli step
   const [stepChiamata, setStepChiamata] = useState<string>('da_contattare');
+  const [stepChiamataData, setStepChiamataData] = useState<string>('');
   const [stepSopralluogo, setStepSopralluogo] = useState<string>('da_organizzare');
   const [stepSopralluogoData, setStepSopralluogoData] = useState<string>('');
   const [stepAccordo, setStepAccordo] = useState<string>('da_inviare');
+  const [stepAccordoData, setStepAccordoData] = useState<string>('');
   const [stepPreliminare, setStepPreliminare] = useState<string>('da_organizzare');
   const [stepPreliminareData, setStepPreliminareData] = useState<string>('');
   const [savingSteps, setSavingSteps] = useState(false);
@@ -48,9 +50,11 @@ const LeadDetail: React.FC = () => {
           if (details.property.closer_notes) setNotes(details.property.closer_notes);
           if (details.property.closer_status) setCloserStatus(details.property.closer_status);
           if (details.property.step_chiamata) setStepChiamata(details.property.step_chiamata);
+          if (details.property.step_chiamata_data) setStepChiamataData(details.property.step_chiamata_data);
           if (details.property.step_sopralluogo) setStepSopralluogo(details.property.step_sopralluogo);
           if (details.property.step_sopralluogo_data) setStepSopralluogoData(details.property.step_sopralluogo_data);
           if (details.property.step_accordo) setStepAccordo(details.property.step_accordo);
+          if (details.property.step_accordo_data) setStepAccordoData(details.property.step_accordo_data);
           if (details.property.step_preliminare) setStepPreliminare(details.property.step_preliminare);
           if (details.property.step_preliminare_data) setStepPreliminareData(details.property.step_preliminare_data);
         }
@@ -158,6 +162,12 @@ const LeadDetail: React.FC = () => {
     return new Date(dateString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  // Funzione per convertire data da input date a stringa
+  const handleDateChange = (field: string, setDateFn: (val: string) => void, value: string) => {
+    setDateFn(value);
+    saveStep(field, value);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -190,8 +200,8 @@ const LeadDetail: React.FC = () => {
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
-  // Componente per lo step semplice (Chiamata e Accordo)
-  const SimpleStepToggle = ({ 
+  // Componente per lo step con date picker manuale (Chiamata e Accordo)
+  const StepWithDatePicker = ({ 
     label, 
     icon: Icon, 
     status, 
@@ -199,6 +209,11 @@ const LeadDetail: React.FC = () => {
     field,
     completedLabel,
     pendingLabel,
+    dateValue,
+    setDateValue,
+    dateField,
+    pendingText,
+    completedText,
   }: { 
     label: string;
     icon: React.ElementType;
@@ -207,53 +222,67 @@ const LeadDetail: React.FC = () => {
     field: string;
     completedLabel: string;
     pendingLabel: string;
+    dateValue: string;
+    setDateValue: (val: string) => void;
+    dateField: string;
+    pendingText: string;
+    completedText: string;
   }) => {
     const isCompleted = status === completedLabel;
     
     return (
-      <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
+        {/* Icona e Label */}
+        <div className="flex items-center gap-2 w-28 flex-shrink-0">
           <Icon size={16} className="text-slate-400" />
           <span className="text-sm font-medium text-slate-700">{label}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg overflow-hidden border border-slate-200">
-            <button
-              onClick={() => {
-                setStatus(pendingLabel);
-                saveStep(field, pendingLabel);
-              }}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                !isCompleted 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              {pendingLabel === 'da_contattare' ? 'Da contattare' : 
-               pendingLabel === 'da_organizzare' ? 'Da organizzare' : 'Da inviare'}
-            </button>
-            <button
-              onClick={() => {
-                setStatus(completedLabel);
-                saveStep(field, completedLabel);
-              }}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                isCompleted 
-                  ? 'bg-emerald-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              {completedLabel === 'contattato' ? 'Contattato' : 
-               completedLabel === 'organizzato' ? 'Organizzato' : 'Inviato'}
-            </button>
-          </div>
+        
+        {/* Toggle buttons */}
+        <div className="flex rounded-lg overflow-hidden border border-slate-200">
+          <button
+            onClick={() => {
+              setStatus(pendingLabel);
+              saveStep(field, pendingLabel);
+            }}
+            className={`w-28 py-2 text-xs font-medium transition-colors ${
+              !isCompleted 
+                ? 'bg-red-500 text-white' 
+                : 'bg-white text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            {pendingText}
+          </button>
+          <button
+            onClick={() => {
+              setStatus(completedLabel);
+              saveStep(field, completedLabel);
+            }}
+            className={`w-28 py-2 text-xs font-medium transition-colors ${
+              isCompleted 
+                ? 'bg-emerald-500 text-white' 
+                : 'bg-white text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            {completedText}
+          </button>
+        </div>
+
+        {/* Date picker */}
+        <div className="flex-1">
+          <input
+            type="date"
+            value={dateValue}
+            onChange={(e) => handleDateChange(dateField, setDateValue, e.target.value)}
+            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+          />
         </div>
       </div>
     );
   };
 
-  // Componente per lo step con calendario (Sopralluogo e Preliminare)
-  const CalendarStepToggle = ({ 
+  // Componente per lo step con Calendly (Sopralluogo e Preliminare)
+  const StepWithCalendly = ({ 
     label, 
     icon: Icon, 
     status, 
@@ -277,55 +306,57 @@ const LeadDetail: React.FC = () => {
     const isCompleted = status === completedLabel;
     
     return (
-      <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
+        {/* Icona e Label */}
+        <div className="flex items-center gap-2 w-28 flex-shrink-0">
           <Icon size={16} className="text-slate-400" />
           <span className="text-sm font-medium text-slate-700">{label}</span>
-          {dateValue && (
-            <span className="text-xs text-bylo-blue bg-blue-50 px-2 py-0.5 rounded-full">
-              {formatDateDisplay(dateValue)}
-            </span>
-          )}
         </div>
-        <div className="flex items-center gap-2">
-          {/* Toggle buttons */}
-          <div className="flex rounded-lg overflow-hidden border border-slate-200">
-            <button
-              onClick={() => {
-                setStatus(pendingLabel);
-                saveStep(field, pendingLabel);
-              }}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                !isCompleted 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              Da organizzare
-            </button>
-            <button
-              onClick={() => {
-                setStatus(completedLabel);
-                saveStep(field, completedLabel);
-              }}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                isCompleted 
-                  ? 'bg-emerald-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              Organizzato
-            </button>
-          </div>
-          
-          {/* Calendar button */}
+        
+        {/* Toggle buttons */}
+        <div className="flex rounded-lg overflow-hidden border border-slate-200">
+          <button
+            onClick={() => {
+              setStatus(pendingLabel);
+              saveStep(field, pendingLabel);
+            }}
+            className={`w-28 py-2 text-xs font-medium transition-colors ${
+              !isCompleted 
+                ? 'bg-red-500 text-white' 
+                : 'bg-white text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            Da organizzare
+          </button>
+          <button
+            onClick={() => {
+              setStatus(completedLabel);
+              saveStep(field, completedLabel);
+            }}
+            className={`w-28 py-2 text-xs font-medium transition-colors ${
+              isCompleted 
+                ? 'bg-emerald-500 text-white' 
+                : 'bg-white text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            Organizzato
+          </button>
+        </div>
+
+        {/* Calendly button + data */}
+        <div className="flex-1 flex items-center gap-2">
           <button
             onClick={() => openCalendarModal(calendarType)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-bylo-blue bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
           >
             <Calendar size={14} />
             Prenota
           </button>
+          {dateValue && (
+            <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg font-medium">
+              {formatDateDisplay(dateValue)}
+            </span>
+          )}
         </div>
       </div>
     );
@@ -363,29 +394,30 @@ const LeadDetail: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Stato Closer Selezionabile */}
+          {/* Stato Closer - Migliorato */}
           {property && (
             <select
               value={closerStatus}
               onChange={(e) => saveCloserStatus(e.target.value)}
               disabled={savingCloserStatus}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg border-2 transition-all cursor-pointer focus:outline-none ${
+              className={`px-5 py-2.5 text-sm font-semibold rounded-xl border-2 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 appearance-none ${
                 closerStatus === 'approvato' 
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700' 
+                  ? 'bg-emerald-50 border-emerald-400 text-emerald-700 focus:ring-emerald-400' 
                   : closerStatus === 'rifiutato'
-                  ? 'bg-red-50 border-red-300 text-red-700'
-                  : 'bg-blue-50 border-blue-300 text-blue-700'
+                  ? 'bg-red-50 border-red-400 text-red-700 focus:ring-red-400'
+                  : 'bg-amber-50 border-amber-400 text-amber-700 focus:ring-amber-400'
               }`}
+              style={{ minWidth: '160px' }}
             >
-              <option value="in_lavorazione">⏳ In lavorazione</option>
-              <option value="approvato">✓ Approvato</option>
-              <option value="rifiutato">✗ Rifiutato</option>
+              <option value="in_lavorazione">In lavorazione</option>
+              <option value="approvato">Approvato</option>
+              <option value="rifiutato">Rifiutato</option>
             </select>
           )}
           
           <button 
             onClick={copyLink}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
           >
             {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
             {copied ? 'Copiato!' : 'Copia link'}
@@ -494,7 +526,7 @@ const LeadDetail: React.FC = () => {
                 </div>
               </div>
               <div className="px-5 py-2">
-                <SimpleStepToggle
+                <StepWithDatePicker
                   label="Chiamata"
                   icon={Phone}
                   status={stepChiamata}
@@ -502,8 +534,13 @@ const LeadDetail: React.FC = () => {
                   field="step_chiamata"
                   pendingLabel="da_contattare"
                   completedLabel="contattato"
+                  dateValue={stepChiamataData}
+                  setDateValue={setStepChiamataData}
+                  dateField="step_chiamata_data"
+                  pendingText="Da contattare"
+                  completedText="Contattato"
                 />
-                <CalendarStepToggle
+                <StepWithCalendly
                   label="Sopralluogo"
                   icon={Home}
                   status={stepSopralluogo}
@@ -514,7 +551,7 @@ const LeadDetail: React.FC = () => {
                   calendarType="sopralluogo"
                   dateValue={stepSopralluogoData}
                 />
-                <SimpleStepToggle
+                <StepWithDatePicker
                   label="Accordo"
                   icon={Send}
                   status={stepAccordo}
@@ -522,8 +559,13 @@ const LeadDetail: React.FC = () => {
                   field="step_accordo"
                   pendingLabel="da_inviare"
                   completedLabel="inviato"
+                  dateValue={stepAccordoData}
+                  setDateValue={setStepAccordoData}
+                  dateField="step_accordo_data"
+                  pendingText="Da inviare"
+                  completedText="Inviato"
                 />
-                <CalendarStepToggle
+                <StepWithCalendly
                   label="Preliminare"
                   icon={FileSignature}
                   status={stepPreliminare}
