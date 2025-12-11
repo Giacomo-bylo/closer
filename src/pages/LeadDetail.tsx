@@ -393,21 +393,21 @@ const LeadDetail: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           {/* Stato Closer - Migliorato */}
           {property && (
             <select
               value={closerStatus}
               onChange={(e) => saveCloserStatus(e.target.value)}
               disabled={savingCloserStatus}
-              className={`px-5 py-2.5 text-sm font-semibold rounded-xl border-2 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 appearance-none ${
+              className={`px-5 py-2.5 text-sm font-semibold rounded-xl border-2 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 appearance-none text-center ${
                 closerStatus === 'approvato' 
                   ? 'bg-emerald-50 border-emerald-400 text-emerald-700 focus:ring-emerald-400' 
                   : closerStatus === 'rifiutato'
                   ? 'bg-red-50 border-red-400 text-red-700 focus:ring-red-400'
                   : 'bg-amber-50 border-amber-400 text-amber-700 focus:ring-amber-400'
               }`}
-              style={{ minWidth: '160px' }}
+              style={{ minWidth: '160px', textAlignLast: 'center' }}
             >
               <option value="in_lavorazione">In lavorazione</option>
               <option value="approvato">Approvato</option>
