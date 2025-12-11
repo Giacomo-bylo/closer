@@ -113,16 +113,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
         }
       }
 
-      // Aggiungi risposte custom (telefono e indirizzo)
-      prefill.customAnswers = {};
-      if (leadPhone) {
-        prefill.customAnswers['a1'] = leadPhone;
-      }
-      if (leadAddress) {
-        prefill.customAnswers['a2'] = leadAddress;
-      }
-
-      // Inizializza il widget
+      // Inizializza il widget (campo custom answers lasciato vuoto)
       window.Calendly.initInlineWidget({
         url: url,
         parentElement: containerRef.current,
