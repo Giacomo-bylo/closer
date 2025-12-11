@@ -39,6 +39,9 @@ const LeadDetail: React.FC = () => {
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarModalType, setCalendarModalType] = useState<'sopralluogo' | 'preliminare'>('sopralluogo');
 
+  // URL per gestire gli eventi programmati su Calendly
+  const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
+
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
@@ -174,9 +177,6 @@ const LeadDetail: React.FC = () => {
     setDateFn(value);
     saveStep(field, value);
   };
-
-  // URL per gestire gli eventi programmati su Calendly
-  const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
 
   if (loading) {
     return (
@@ -358,7 +358,6 @@ const LeadDetail: React.FC = () => {
         {/* Calendly buttons + data */}
         <div className="flex-1 flex items-center gap-2">
           {!hasBooking ? (
-            // Bottone "Prenota" quando non c'è ancora una prenotazione
             <button
               onClick={() => openCalendarModal(calendarType)}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
@@ -367,8 +366,7 @@ const LeadDetail: React.FC = () => {
               Prenota
             </button>
           ) : (
-            // Bottone "Modifica" + data quando c'è già una prenotazione
-            <>
+            <React.Fragment>
               
                 href={CALENDLY_SCHEDULED_EVENTS_URL}
                 target="_blank"
@@ -381,7 +379,7 @@ const LeadDetail: React.FC = () => {
               <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg font-medium">
                 {formatDateDisplay(dateValue)}
               </span>
-            </>
+            </React.Fragment>
           )}
         </div>
       </div>
@@ -635,7 +633,7 @@ const LeadDetail: React.FC = () => {
               </div>
             </div>
           ) : (
-            <>
+            <React.Fragment>
               {/* Dettagli Immobile */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
@@ -782,10 +780,10 @@ const LeadDetail: React.FC = () => {
                       className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {savingNotes ? (
-                        <>
+                        <React.Fragment>
                           <Loader2 size={12} className="animate-spin" />
                           Salvo...
-                        </>
+                        </React.Fragment>
                       ) : (
                         'Salva Note'
                       )}
@@ -793,7 +791,7 @@ const LeadDetail: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </>
+            </React.Fragment>
           )}
         </section>
 
