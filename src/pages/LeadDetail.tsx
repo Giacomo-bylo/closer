@@ -9,6 +9,9 @@ import TranscriptViewer from '@/components/TranscriptViewer';
 import CalendarModal from '@/components/CalendarModal';
 import { formatDate, formatCurrency, formatDuration } from '@/lib/utils';
 
+// URL per gestire gli eventi programmati su Calendly
+const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
+
 const LeadDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<LeadFullProfile | null>(null);
@@ -38,9 +41,6 @@ const LeadDetail: React.FC = () => {
   // Stati per il modal calendario
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarModalType, setCalendarModalType] = useState<'sopralluogo' | 'preliminare'>('sopralluogo');
-
-  // URL per gestire gli eventi programmati su Calendly
-  const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -172,7 +172,6 @@ const LeadDetail: React.FC = () => {
     return new Date(dateString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // Funzione per convertire data da input date a stringa
   const handleDateChange = (field: string, setDateFn: (val: string) => void, value: string) => {
     setDateFn(value);
     saveStep(field, value);
@@ -207,7 +206,6 @@ const LeadDetail: React.FC = () => {
   const leadPhone = property?.lead_telefono || call?.lead_telefono || 'Numero non disponibile';
   const leadEmail = property?.lead_email || null;
 
-  // Calcola range offerta
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
@@ -243,13 +241,11 @@ const LeadDetail: React.FC = () => {
     
     return (
       <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-        {/* Icona e Label */}
         <div className="flex items-center gap-2 w-28 flex-shrink-0">
           <Icon size={16} className="text-slate-400" />
           <span className="text-sm font-medium text-slate-700">{label}</span>
         </div>
         
-        {/* Toggle buttons */}
         <div className="flex rounded-lg overflow-hidden border border-slate-200">
           <button
             onClick={() => {
@@ -279,7 +275,6 @@ const LeadDetail: React.FC = () => {
           </button>
         </div>
 
-        {/* Date picker */}
         <div className="flex-1">
           <input
             type="date"
@@ -319,13 +314,11 @@ const LeadDetail: React.FC = () => {
     
     return (
       <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-        {/* Icona e Label */}
         <div className="flex items-center gap-2 w-28 flex-shrink-0">
           <Icon size={16} className="text-slate-400" />
           <span className="text-sm font-medium text-slate-700">{label}</span>
         </div>
         
-        {/* Toggle buttons */}
         <div className="flex rounded-lg overflow-hidden border border-slate-200">
           <button
             onClick={() => {
@@ -355,9 +348,8 @@ const LeadDetail: React.FC = () => {
           </button>
         </div>
 
-        {/* Calendly buttons + data */}
         <div className="flex-1 flex items-center gap-2">
-          {!hasBooking ? (
+          {!hasBooking && (
             <button
               onClick={() => openCalendarModal(calendarType)}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
@@ -365,21 +357,22 @@ const LeadDetail: React.FC = () => {
               <Calendar size={14} />
               Prenota
             </button>
-          ) : (
-            <React.Fragment>
-              
-                href={CALENDLY_SCHEDULED_EVENTS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
-              >
-                <ExternalLink size={14} />
-                Modifica
-              </a>
-              <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg font-medium">
-                {formatDateDisplay(dateValue)}
-              </span>
-            </React.Fragment>
+          )}
+          {hasBooking && (
+            
+              href={CALENDLY_SCHEDULED_EVENTS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+            >
+              <ExternalLink size={14} />
+              Modifica
+            </a>
+          )}
+          {hasBooking && dateValue && (
+            <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg font-medium">
+              {formatDateDisplay(dateValue)}
+            </span>
           )}
         </div>
       </div>
@@ -388,7 +381,6 @@ const LeadDetail: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Calendar Modal */}
       {property && (
         <CalendarModal
           isOpen={calendarModalOpen}
@@ -402,7 +394,6 @@ const LeadDetail: React.FC = () => {
         />
       )}
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
           <Link to="/" className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
@@ -411,12 +402,10 @@ const LeadDetail: React.FC = () => {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{leadName}</h1>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1">
-              {/* Telefono */}
               <div className="flex items-center gap-2 text-slate-500 text-sm">
                 <Phone size={14} />
                 <span>{leadPhone}</span>
               </div>
-              {/* Email con bottone copia */}
               {leadEmail && (
                 <div className="flex items-center gap-2 text-slate-500 text-sm">
                   <Mail size={14} />
@@ -439,7 +428,6 @@ const LeadDetail: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-6">
-          {/* Stato Closer - Migliorato */}
           {property && (
             <select
               value={closerStatus}
@@ -472,7 +460,6 @@ const LeadDetail: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Left: Call */}
         <section className="space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
@@ -493,7 +480,6 @@ const LeadDetail: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Metrics */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-slate-50 p-2.5 rounded-lg">
                       <div className="text-[10px] text-slate-500 uppercase tracking-wide font-medium mb-1">Esito</div>
@@ -516,7 +502,6 @@ const LeadDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Summary */}
                   <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3">
                     <h3 className="text-xs font-semibold text-blue-900 mb-1.5 flex items-center gap-1.5">
                       <FileText size={14} /> Riepilogo
@@ -526,7 +511,6 @@ const LeadDetail: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Details */}
                   <div className="space-y-3 text-sm">
                     {call.problematiche_immobile && (
                       <div>
@@ -558,10 +542,8 @@ const LeadDetail: React.FC = () => {
           </div>
         </section>
 
-        {/* Right: Property */}
         <section className="space-y-4">
           
-          {/* Step Processo Acquisizione */}
           {property && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-bylo-blue/5 to-transparent">
@@ -625,173 +607,167 @@ const LeadDetail: React.FC = () => {
             </div>
           )}
 
-          {!property ? (
+          {!property && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <div className="text-center py-6 text-slate-400">
                 <Building2 size={40} className="mx-auto mb-2 opacity-20" />
                 <p className="text-sm">Valutazione immobile non disponibile</p>
               </div>
             </div>
-          ) : (
-            <React.Fragment>
-              {/* Dettagli Immobile */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-semibold text-slate-800">
-                    <Building2 size={16} className="text-bylo-blue" />
-                    <h2>Scheda Immobile</h2>
-                  </div>
-                  <Badge status={property.status} type="property" />
+          )}
+
+          {property && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-slate-800">
+                  <Building2 size={16} className="text-bylo-blue" />
+                  <h2>Scheda Immobile</h2>
                 </div>
-                <div className="p-5">
-                  {/* Address */}
-                  <div className="flex items-start gap-3 mb-4 pb-4 border-b border-slate-100">
-                    <div className="mt-0.5 bg-slate-100 p-2 rounded-lg text-slate-500">
-                      <MapPin size={16} />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-900">{property.indirizzo_completo}</h4>
-                      <p className="text-sm text-slate-500">
-                        {property.tipo_immobile || 'Immobile'} • {property.superficie_mq} mq • {property.numero_locali} locali
-                      </p>
+                <Badge status={property.status} type="property" />
+              </div>
+              <div className="p-5">
+                <div className="flex items-start gap-3 mb-4 pb-4 border-b border-slate-100">
+                  <div className="mt-0.5 bg-slate-100 p-2 rounded-lg text-slate-500">
+                    <MapPin size={16} />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">{property.indirizzo_completo}</h4>
+                    <p className="text-sm text-slate-500">
+                      {property.tipo_immobile || 'Immobile'} • {property.superficie_mq} mq • {property.numero_locali} locali
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-y-2.5 gap-x-6 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Tipologia</span>
+                    <span className="font-medium">{property.tipo_immobile || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Condizioni</span>
+                    <span className="font-medium">{property.condizioni_immobile || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Superficie</span>
+                    <span className="font-medium">{property.superficie_mq ? `${property.superficie_mq} mq` : '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Locali</span>
+                    <span className="font-medium">{property.numero_locali || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Bagni</span>
+                    <span className="font-medium">{property.numero_bagni || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Piano</span>
+                    <span className="font-medium">{property.piano_immobile || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Ascensore</span>
+                    <span className="font-medium">{property.ascensore || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Anno costruzione</span>
+                    <span className="font-medium">{property.anno_costruzione || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Aree esterne</span>
+                    <span className="font-medium">{property.aree_esterne || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Pertinenze</span>
+                    <span className="font-medium">{property.pertinenze || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {property && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-emerald-50">
+                <h3 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                  <TrendingUp size={14} />
+                  Valutazione Economica
+                </h3>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-3">
+                    <div className="text-[10px] text-bylo-blue font-medium uppercase tracking-wide mb-0.5">Range Offerta</div>
+                    <div className="text-xl font-bold text-bylo-blue">
+                      {prezzoAcquistoMin && prezzoAcquistoMax 
+                        ? `${formatCurrency(prezzoAcquistoMin)} - ${formatCurrency(prezzoAcquistoMax)}`
+                        : '-'
+                      }
                     </div>
                   </div>
 
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-2 gap-y-2.5 gap-x-6 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Tipologia</span>
-                      <span className="font-medium">{property.tipo_immobile || '-'}</span>
+                  <div className={`rounded-lg p-3 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
+                    <div className={`text-[10px] font-medium uppercase tracking-wide mb-0.5 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      Offerta Definitiva
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Condizioni</span>
-                      <span className="font-medium">{property.condizioni_immobile || '-'}</span>
+                    <div className={`text-xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      {property.offerta_definitiva ? formatCurrency(property.offerta_definitiva) : 'Da definire'}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Superficie</span>
-                      <span className="font-medium">{property.superficie_mq ? `${property.superficie_mq} mq` : '-'}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-500 mb-0.5">Prezzo Rivendita</div>
+                      <div className="text-base font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Locali</span>
-                      <span className="font-medium">{property.numero_locali || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Bagni</span>
-                      <span className="font-medium">{property.numero_bagni || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Piano</span>
-                      <span className="font-medium">{property.piano_immobile || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Ascensore</span>
-                      <span className="font-medium">{property.ascensore || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Anno costruzione</span>
-                      <span className="font-medium">{property.anno_costruzione || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Aree esterne</span>
-                      <span className="font-medium">{property.aree_esterne || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Pertinenze</span>
-                      <span className="font-medium">{property.pertinenze || '-'}</span>
+                    <div className="bg-slate-50 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-500 mb-0.5">Costi Riqualificazione</div>
+                      <div className="text-base font-semibold text-slate-900">{formatCurrency(property.totale_costi_escluso_acquisto)}</div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* Valutazione Economica */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100 bg-emerald-50">
-                  <h3 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
-                    <TrendingUp size={14} />
-                    Valutazione Economica
-                  </h3>
-                </div>
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {/* Range Offerta */}
-                    <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-3">
-                      <div className="text-[10px] text-bylo-blue font-medium uppercase tracking-wide mb-0.5">Range Offerta</div>
-                      <div className="text-xl font-bold text-bylo-blue">
-                        {prezzoAcquistoMin && prezzoAcquistoMax 
-                          ? `${formatCurrency(prezzoAcquistoMin)} - ${formatCurrency(prezzoAcquistoMax)}`
-                          : '-'
-                        }
-                      </div>
-                    </div>
-
-                    {/* Offerta Definitiva */}
-                    <div className={`rounded-lg p-3 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
-                      <div className={`text-[10px] font-medium uppercase tracking-wide mb-0.5 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
-                        Offerta Definitiva
-                      </div>
-                      <div className={`text-xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
-                        {property.offerta_definitiva ? formatCurrency(property.offerta_definitiva) : 'Da definire'}
-                      </div>
-                    </div>
-
-                    {/* Prezzo Rivendita e Costi */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-50 rounded-lg p-2.5">
-                        <div className="text-[10px] text-slate-500 mb-0.5">Prezzo Rivendita</div>
-                        <div className="text-base font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-2.5">
-                        <div className="text-[10px] text-slate-500 mb-0.5">Costi Riqualificazione</div>
-                        <div className="text-base font-semibold text-slate-900">{formatCurrency(property.totale_costi_escluso_acquisto)}</div>
-                      </div>
-                    </div>
-                  </div>
+          {property && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-amber-50">
+                <h3 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                  <StickyNote size={14} />
+                  Note Closer
+                </h3>
+              </div>
+              <div className="p-4">
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Aggiungi note su questo lead..."
+                  className="w-full h-24 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
+                />
+                <div className="mt-2 flex justify-between items-center">
+                  <span className="text-xs text-slate-400">
+                    {notesSaved && (
+                      <span className="text-emerald-600 flex items-center gap-1">
+                        <Check size={12} /> Salvate!
+                      </span>
+                    )}
+                  </span>
+                  <button 
+                    onClick={saveNotes}
+                    disabled={savingNotes}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {savingNotes ? (
+                      <span className="flex items-center gap-1.5">
+                        <Loader2 size={12} className="animate-spin" />
+                        Salvo...
+                      </span>
+                    ) : (
+                      'Salva Note'
+                    )}
+                  </button>
                 </div>
               </div>
-
-              {/* Note Closer */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100 bg-amber-50">
-                  <h3 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                    <StickyNote size={14} />
-                    Note Closer
-                  </h3>
-                </div>
-                <div className="p-4">
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Aggiungi note su questo lead..."
-                    className="w-full h-24 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
-                  />
-                  <div className="mt-2 flex justify-between items-center">
-                    <span className="text-xs text-slate-400">
-                      {notesSaved ? (
-                        <span className="text-emerald-600 flex items-center gap-1">
-                          <Check size={12} /> Salvate!
-                        </span>
-                      ) : (
-                        ''
-                      )}
-                    </span>
-                    <button 
-                      onClick={saveNotes}
-                      disabled={savingNotes}
-                      className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                    >
-                      {savingNotes ? (
-                        <React.Fragment>
-                          <Loader2 size={12} className="animate-spin" />
-                          Salvo...
-                        </React.Fragment>
-                      ) : (
-                        'Salva Note'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </React.Fragment>
+            </div>
           )}
         </section>
 
