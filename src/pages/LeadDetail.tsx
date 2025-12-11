@@ -9,9 +9,6 @@ import TranscriptViewer from '@/components/TranscriptViewer';
 import CalendarModal from '@/components/CalendarModal';
 import { formatDate, formatCurrency, formatDuration } from '@/lib/utils';
 
-// URL per gestire gli eventi programmati su Calendly
-const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
-
 const LeadDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<LeadFullProfile | null>(null);
@@ -23,11 +20,9 @@ const LeadDetail: React.FC = () => {
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   
-  // Stati per il closer
   const [closerStatus, setCloserStatus] = useState<string>('in_lavorazione');
   const [savingCloserStatus, setSavingCloserStatus] = useState(false);
   
-  // Stati per gli step
   const [stepChiamata, setStepChiamata] = useState<string>('da_contattare');
   const [stepChiamataData, setStepChiamataData] = useState<string>('');
   const [stepSopralluogo, setStepSopralluogo] = useState<string>('da_organizzare');
@@ -38,7 +33,6 @@ const LeadDetail: React.FC = () => {
   const [stepPreliminareData, setStepPreliminareData] = useState<string>('');
   const [savingSteps, setSavingSteps] = useState(false);
 
-  // Stati per il modal calendario
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarModalType, setCalendarModalType] = useState<'sopralluogo' | 'preliminare'>('sopralluogo');
 
@@ -49,7 +43,6 @@ const LeadDetail: React.FC = () => {
         const details = await getLeadDetails(id);
         setData(details);
         
-        // Carica i dati esistenti
         if (details.property) {
           if (details.property.closer_notes) setNotes(details.property.closer_notes);
           if (details.property.closer_status) setCloserStatus(details.property.closer_status);
@@ -209,7 +202,6 @@ const LeadDetail: React.FC = () => {
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
-  // Componente per lo step con date picker manuale (Chiamata e Accordo)
   const StepWithDatePicker = ({ 
     label, 
     icon: Icon, 
@@ -287,7 +279,6 @@ const LeadDetail: React.FC = () => {
     );
   };
 
-  // Componente per lo step con Calendly (Sopralluogo e Preliminare)
   const StepWithCalendly = ({ 
     label, 
     icon: Icon, 
@@ -310,7 +301,32 @@ const LeadDetail: React.FC = () => {
     dateValue?: string;
   }) => {
     const isCompleted = status === completedLabel;
-    const hasBooking = !!dateValue;
+    const hasBooking = Boolean(dateValue);
+    
+    const renderActionButton = () => {
+      if (hasBooking) {
+        return (
+          <a
+            href="https://calendly.com/app/scheduled_events/user/me"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+          >
+            <ExternalLink size={14} />
+            Modifica
+          </a>
+        );
+      }
+      return (
+        <button
+          onClick={() => openCalendarModal(calendarType)}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
+        >
+          <Calendar size={14} />
+          Prenota
+        </button>
+      );
+    };
     
     return (
       <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
@@ -349,27 +365,8 @@ const LeadDetail: React.FC = () => {
         </div>
 
         <div className="flex-1 flex items-center gap-2">
-          {!hasBooking && (
-            <button
-              onClick={() => openCalendarModal(calendarType)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
-            >
-              <Calendar size={14} />
-              Prenota
-            </button>
-          )}
-          {hasBooking && (
-            
-              href={CALENDLY_SCHEDULED_EVENTS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
-            >
-              <ExternalLink size={14} />
-              Modifica
-            </a>
-          )}
-          {hasBooking && dateValue && (
+          {renderActionButton()}
+          {dateValue && (
             <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg font-medium">
               {formatDateDisplay(dateValue)}
             </span>
@@ -377,6 +374,18 @@ const LeadDetail: React.FC = () => {
         </div>
       </div>
     );
+  };
+
+  const renderSaveNotesButton = () => {
+    if (savingNotes) {
+      return (
+        <span className="flex items-center gap-1.5">
+          <Loader2 size={12} className="animate-spin" />
+          Salvo...
+        </span>
+      );
+    }
+    return 'Salva Note';
   };
 
   return (
@@ -756,14 +765,7 @@ const LeadDetail: React.FC = () => {
                     disabled={savingNotes}
                     className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    {savingNotes ? (
-                      <span className="flex items-center gap-1.5">
-                        <Loader2 size={12} className="animate-spin" />
-                        Salvo...
-                      </span>
-                    ) : (
-                      'Salva Note'
-                    )}
+                    {renderSaveNotesButton()}
                   </button>
                 </div>
               </div>
