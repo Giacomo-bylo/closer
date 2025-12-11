@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home, Mail } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home, Mail, ExternalLink } from 'lucide-react';
 import { getLeadDetails } from '@/services/leadService';
 import { supabaseConto } from '@/lib/supabase';
 import { LeadFullProfile } from '@/types';
@@ -175,6 +175,9 @@ const LeadDetail: React.FC = () => {
     saveStep(field, value);
   };
 
+  // URL per gestire gli eventi programmati su Calendly
+  const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -312,6 +315,7 @@ const LeadDetail: React.FC = () => {
     dateValue?: string;
   }) => {
     const isCompleted = status === completedLabel;
+    const hasBooking = !!dateValue;
     
     return (
       <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
@@ -351,19 +355,33 @@ const LeadDetail: React.FC = () => {
           </button>
         </div>
 
-        {/* Calendly button + data */}
+        {/* Calendly buttons + data */}
         <div className="flex-1 flex items-center gap-2">
-          <button
-            onClick={() => openCalendarModal(calendarType)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
-          >
-            <Calendar size={14} />
-            Prenota
-          </button>
-          {dateValue && (
-            <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg font-medium">
-              {formatDateDisplay(dateValue)}
-            </span>
+          {!hasBooking ? (
+            // Bottone "Prenota" quando non c'è ancora una prenotazione
+            <button
+              onClick={() => openCalendarModal(calendarType)}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
+            >
+              <Calendar size={14} />
+              Prenota
+            </button>
+          ) : (
+            // Bottone "Modifica" + data quando c'è già una prenotazione
+            <>
+              
+                href={CALENDLY_SCHEDULED_EVENTS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+              >
+                <ExternalLink size={14} />
+                Modifica
+              </a>
+              <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg font-medium">
+                {formatDateDisplay(dateValue)}
+              </span>
+            </>
           )}
         </div>
       </div>
