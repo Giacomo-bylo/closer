@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Calendar, X, Check, Loader2 } from 'lucide-react';
 
 // URLs Calendly
@@ -18,6 +18,26 @@ interface CalendarModalProps {
   propertyId?: string;
 }
 
+// Dichiarazione per TypeScript
+declare global {
+  interface Window {
+    Calendly?: {
+      initInlineWidget: (options: {
+        url: string;
+        parentElement: HTMLElement;
+        prefill?: {
+          name?: string;
+          firstName?: string;
+          lastName?: string;
+          email?: string;
+          customAnswers?: Record<string, string>;
+        };
+        utm?: Record<string, string>;
+      }) => void;
+    };
+  }
+}
+
 const CalendarModal: React.FC<CalendarModalProps> = ({
   isOpen,
   onClose,
@@ -29,38 +49,92 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [eventScheduled, setEventScheduled] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scriptLoadedRef = useRef(false);
 
-  // Costruisce l'URL con prefill dei dati
-  const buildCalendlyUrl = (): string => {
-    const baseUrl = CALENDLY_URLS[eventType];
-    const params = new URLSearchParams();
-    
-    // Nascondi il banner GDPR/cookie
-    params.append('hide_gdpr_banner', '1');
-    
-    // Prefill nome e telefono
-    if (leadName) {
-      const nameParts = leadName.trim().split(' ');
-      params.append('name', leadName);
-      if (nameParts.length > 1) {
-        params.append('first_name', nameParts[0]);
-        params.append('last_name', nameParts.slice(1).join(' '));
+  // Carica lo script di Calendly
+  useEffect(() => {
+    if (scriptLoadedRef.current) return;
+
+    // Carica il CSS di Calendly
+    const link = document.createElement('link');
+    link.href = 'https://assets.calendly.com/assets/external/widget.css';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+
+    // Carica lo script di Calendly
+    const script = document.createElement('script');
+    script.src = 'https://assets.calendly.com/assets/external/widget.js';
+    script.async = true;
+    script.onload = () => {
+      scriptLoadedRef.current = true;
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      // Non rimuoviamo script e CSS per evitare problemi di ricaricamento
+    };
+  }, []);
+
+  // Inizializza il widget quando il modal si apre
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+
+    // Aspetta che lo script sia caricato
+    const initWidget = () => {
+      if (!window.Calendly || !containerRef.current) {
+        setTimeout(initWidget, 100);
+        return;
       }
-    }
-    
-    // Aggiungi location se disponibile
-    if (leadAddress) {
-      params.append('location', leadAddress);
-    }
-    
-    // Custom questions (se configurate in Calendly)
-    if (leadPhone) {
-      params.append('a1', leadPhone); // Primo campo custom
-    }
-    
-    const queryString = params.toString();
-    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
-  };
+
+      // Pulisci il container
+      containerRef.current.innerHTML = '';
+
+      // Costruisci l'URL con il parametro per nascondere il banner GDPR
+      const baseUrl = CALENDLY_URLS[eventType];
+      const url = `${baseUrl}?hide_gdpr_banner=1&hide_event_type_details=0`;
+
+      // Prepara i dati di prefill
+      const prefill: {
+        name?: string;
+        firstName?: string;
+        lastName?: string;
+        customAnswers?: Record<string, string>;
+      } = {};
+
+      if (leadName) {
+        const nameParts = leadName.trim().split(' ');
+        prefill.name = leadName;
+        if (nameParts.length > 0) {
+          prefill.firstName = nameParts[0];
+        }
+        if (nameParts.length > 1) {
+          prefill.lastName = nameParts.slice(1).join(' ');
+        }
+      }
+
+      // Aggiungi risposte custom (telefono e indirizzo)
+      prefill.customAnswers = {};
+      if (leadPhone) {
+        prefill.customAnswers['a1'] = leadPhone;
+      }
+      if (leadAddress) {
+        prefill.customAnswers['a2'] = leadAddress;
+      }
+
+      // Inizializza il widget
+      window.Calendly.initInlineWidget({
+        url: url,
+        parentElement: containerRef.current,
+        prefill: prefill,
+      });
+
+      setLoading(false);
+    };
+
+    setLoading(true);
+    initWidget();
+  }, [isOpen, eventType, leadName, leadPhone, leadAddress]);
 
   // Listener per eventi Calendly
   useEffect(() => {
@@ -125,7 +199,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
         </div>
 
         {/* Content - altezza fissa */}
-        <div className="flex-1 relative min-h-0">
+        <div className="flex-1 relative min-h-0 overflow-hidden">
           {/* Success overlay */}
           {eventScheduled && (
             <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center">
@@ -147,15 +221,11 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
             </div>
           )}
 
-          {/* Calendly iframe */}
-          <iframe
-            src={buildCalendlyUrl()}
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            title="Calendly Scheduling"
-            onLoad={() => setLoading(false)}
+          {/* Calendly widget container */}
+          <div 
+            ref={containerRef}
             className="w-full h-full"
+            style={{ minHeight: '600px' }}
           />
         </div>
       </div>
