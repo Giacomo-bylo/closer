@@ -35,6 +35,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
     const baseUrl = CALENDLY_URLS[eventType];
     const params = new URLSearchParams();
     
+    // Nascondi il banner GDPR/cookie
+    params.append('hide_gdpr_banner', '1');
+    
     // Prefill nome e telefono
     if (leadName) {
       const nameParts = leadName.trim().split(' ');
