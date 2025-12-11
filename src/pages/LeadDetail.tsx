@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home, Mail } from 'lucide-react';
 import { getLeadDetails } from '@/services/leadService';
 import { supabaseConto } from '@/lib/supabase';
 import { LeadFullProfile } from '@/types';
@@ -15,6 +15,7 @@ const LeadDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
@@ -71,6 +72,12 @@ const LeadDetail: React.FC = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyEmail = (email: string) => {
+    navigator.clipboard.writeText(email);
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2000);
   };
 
   const saveNotes = async () => {
@@ -195,6 +202,7 @@ const LeadDetail: React.FC = () => {
     : call?.lead_nome || 'Nome Sconosciuto';
   
   const leadPhone = property?.lead_telefono || call?.lead_telefono || 'Numero non disponibile';
+  const leadEmail = property?.lead_email || null;
 
   // Calcola range offerta
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
@@ -386,9 +394,30 @@ const LeadDetail: React.FC = () => {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{leadName}</h1>
-            <div className="flex items-center gap-2 text-slate-500 text-sm">
-              <Phone size={14} />
-              <span>{leadPhone}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1">
+              {/* Telefono */}
+              <div className="flex items-center gap-2 text-slate-500 text-sm">
+                <Phone size={14} />
+                <span>{leadPhone}</span>
+              </div>
+              {/* Email con bottone copia */}
+              {leadEmail && (
+                <div className="flex items-center gap-2 text-slate-500 text-sm">
+                  <Mail size={14} />
+                  <span>{leadEmail}</span>
+                  <button
+                    onClick={() => copyEmail(leadEmail)}
+                    className="p-1 hover:bg-slate-100 rounded transition-colors"
+                    title="Copia email"
+                  >
+                    {copiedEmail ? (
+                      <Check size={14} className="text-emerald-600" />
+                    ) : (
+                      <Copy size={14} className="text-slate-400 hover:text-slate-600" />
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
