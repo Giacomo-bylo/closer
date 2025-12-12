@@ -464,179 +464,181 @@ const LeadDetail: React.FC = () => {
                 {/* STEP 1: Chiamata */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-40 flex-shrink-0">
                       <Phone size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Chiamata</span>
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
                         onClick={() => { setStepChiamata('da_contattare'); saveStep('step_chiamata', 'da_contattare'); }}
-                        className={stepChiamata !== 'contattato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepChiamata !== 'contattato' ? 'w-28 py-2 text-xs font-medium bg-red-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da contattare
                       </button>
                       <button
                         onClick={() => { setStepChiamata('contattato'); saveStep('step_chiamata', 'contattato'); }}
-                        className={stepChiamata === 'contattato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepChiamata === 'contattato' ? 'w-28 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Contattato
                       </button>
                     </div>
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={stepChiamataData}
-                        onChange={(e) => handleDateChange('step_chiamata_data', setStepChiamataData, e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                      />
-                    </div>
+                    <div className="flex-1"></div>
+                    <input
+                      type="date"
+                      value={stepChiamataData}
+                      onChange={(e) => handleDateChange('step_chiamata_data', setStepChiamataData, e.target.value)}
+                      className="w-28 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                    />
                   </div>
                 </div>
 
                 {/* STEP 2: Sopralluogo */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-40 flex-shrink-0">
                       <Home size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Sopralluogo</span>
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
                         onClick={() => { setStepSopralluogo('da_organizzare'); saveStep('step_sopralluogo', 'da_organizzare'); }}
-                        className={stepSopralluogo !== 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepSopralluogo !== 'organizzato' ? 'w-28 py-2 text-xs font-medium bg-red-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da organizzare
                       </button>
                       <button
                         onClick={() => { setStepSopralluogo('organizzato'); saveStep('step_sopralluogo', 'organizzato'); }}
-                        className={stepSopralluogo === 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepSopralluogo === 'organizzato' ? 'w-28 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Organizzato
                       </button>
                     </div>
-                    <div className="flex-1 flex items-center gap-2">
-                      <input
-                        type="date"
-                        value={stepSopralluogoData}
-                        onChange={(e) => handleDateChange('step_sopralluogo_data', setStepSopralluogoData, e.target.value)}
-                        className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                      />
+                    <div className="flex-1"></div>
+                    {stepSopralluogoData ? (
+                      <a
+                        href={CALENDLY_SCHEDULED_EVENTS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        <ExternalLink size={14} />
+                        Modifica
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => openCalendarModal('sopralluogo')}
+                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        <Calendar size={14} />
+                        Prenota
+                      </button>
+                    )}
+                  </div>
+                  {stepSopralluogoData && (
+                    <div className="mt-2 ml-44 flex items-center gap-3">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+                        <Calendar size={12} />
+                        <span className="font-medium">{formatDateDisplay(stepSopralluogoData)}</span>
+                      </div>
                       <input
                         type="time"
                         value={stepSopralluogoOrario}
                         onChange={(e) => { setStepSopralluogoOrario(e.target.value); saveStep('step_sopralluogo_orario', e.target.value); }}
-                        className="w-24 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                        placeholder="Orario"
+                        className="w-24 px-3 py-1.5 text-xs border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
                       />
-                      {stepSopralluogoData ? (
-                        <a
-                          href={CALENDLY_SCHEDULED_EVENTS_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          <ExternalLink size={14} />
-                          Modifica
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => openCalendarModal('sopralluogo')}
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          <Calendar size={14} />
-                          Prenota
-                        </button>
-                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* STEP 3: Accordo */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-40 flex-shrink-0">
                       <Send size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Accordo</span>
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
                         onClick={() => { setStepAccordo('da_inviare'); saveStep('step_accordo', 'da_inviare'); }}
-                        className={stepAccordo !== 'inviato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepAccordo !== 'inviato' ? 'w-28 py-2 text-xs font-medium bg-red-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da inviare
                       </button>
                       <button
                         onClick={() => { setStepAccordo('inviato'); saveStep('step_accordo', 'inviato'); }}
-                        className={stepAccordo === 'inviato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepAccordo === 'inviato' ? 'w-28 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Inviato
                       </button>
                     </div>
-                    <div className="flex-1">
-                      <input
-                        type="date"
-                        value={stepAccordoData}
-                        onChange={(e) => handleDateChange('step_accordo_data', setStepAccordoData, e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                      />
-                    </div>
+                    <div className="flex-1"></div>
+                    <input
+                      type="date"
+                      value={stepAccordoData}
+                      onChange={(e) => handleDateChange('step_accordo_data', setStepAccordoData, e.target.value)}
+                      className="w-28 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                    />
                   </div>
                 </div>
 
                 {/* STEP 4: Preliminare */}
                 <div className="py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-40 flex-shrink-0">
                       <FileSignature size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Preliminare</span>
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
                         onClick={() => { setStepPreliminare('da_organizzare'); saveStep('step_preliminare', 'da_organizzare'); }}
-                        className={stepPreliminare !== 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepPreliminare !== 'organizzato' ? 'w-28 py-2 text-xs font-medium bg-red-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da organizzare
                       </button>
                       <button
                         onClick={() => { setStepPreliminare('organizzato'); saveStep('step_preliminare', 'organizzato'); }}
-                        className={stepPreliminare === 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
+                        className={stepPreliminare === 'organizzato' ? 'w-28 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-28 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Organizzato
                       </button>
                     </div>
-                    <div className="flex-1 flex items-center gap-2">
-                      <input
-                        type="date"
-                        value={stepPreliminareData}
-                        onChange={(e) => handleDateChange('step_preliminare_data', setStepPreliminareData, e.target.value)}
-                        className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                      />
+                    <div className="flex-1"></div>
+                    {stepPreliminareData ? (
+                      <a
+                        href={CALENDLY_SCHEDULED_EVENTS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        <ExternalLink size={14} />
+                        Modifica
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => openCalendarModal('preliminare')}
+                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        <Calendar size={14} />
+                        Prenota
+                      </button>
+                    )}
+                  </div>
+                  {stepPreliminareData && (
+                    <div className="mt-2 ml-44 flex items-center gap-3">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+                        <Calendar size={12} />
+                        <span className="font-medium">{formatDateDisplay(stepPreliminareData)}</span>
+                      </div>
                       <input
                         type="time"
                         value={stepPreliminareOrario}
                         onChange={(e) => { setStepPreliminareOrario(e.target.value); saveStep('step_preliminare_orario', e.target.value); }}
-                        className="w-24 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                        placeholder="Orario"
+                        className="w-24 px-3 py-1.5 text-xs border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
                       />
-                      {stepPreliminareData ? (
-                        <a
-                          href={CALENDLY_SCHEDULED_EVENTS_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          <ExternalLink size={14} />
-                          Modifica
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => openCalendarModal('preliminare')}
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          <Calendar size={14} />
-                          Prenota
-                        </button>
-                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
 
               </div>
