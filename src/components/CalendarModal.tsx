@@ -10,7 +10,7 @@ const CALENDLY_URLS = {
 interface CalendarModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onEventCreated: (date: string) => void;
+  onEventCreated: (date: string, time: string) => void;
   eventType: 'sopralluogo' | 'preliminare';
   leadName: string;
   leadPhone: string;
@@ -44,8 +44,6 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
   onEventCreated,
   eventType,
   leadName,
-  leadPhone,
-  leadAddress,
 }) => {
   const [loading, setLoading] = useState(true);
   const [eventScheduled, setEventScheduled] = useState(false);
@@ -113,7 +111,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
         }
       }
 
-      // Inizializza il widget (campo custom answers lasciato vuoto)
+      // Inizializza il widget
       window.Calendly.initInlineWidget({
         url: url,
         parentElement: containerRef.current,
@@ -125,7 +123,7 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
 
     setLoading(true);
     initWidget();
-  }, [isOpen, eventType, leadName, leadPhone, leadAddress]);
+  }, [isOpen, eventType, leadName]);
 
   // Listener per eventi Calendly
   useEffect(() => {
@@ -135,17 +133,25 @@ const CalendarModal: React.FC<CalendarModalProps> = ({
       if (e.data.event === 'calendly.event_scheduled') {
         setEventScheduled(true);
         
-        // Estrai la data dall'evento se disponibile
+        // Estrai data e orario dall'evento
         const eventData = e.data.payload;
         let scheduledDate = new Date().toISOString().split('T')[0];
+        let scheduledTime = '';
         
         if (eventData?.event?.start_time) {
-          scheduledDate = new Date(eventData.event.start_time).toISOString().split('T')[0];
+          const startTime = new Date(eventData.event.start_time);
+          scheduledDate = startTime.toISOString().split('T')[0];
+          // Formatta l'orario in formato HH:MM
+          scheduledTime = startTime.toLocaleTimeString('it-IT', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false 
+          });
         }
         
         // Notifica dopo un breve delay per mostrare il successo
         setTimeout(() => {
-          onEventCreated(scheduledDate);
+          onEventCreated(scheduledDate, scheduledTime);
           onClose();
         }, 1500);
       }

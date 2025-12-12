@@ -9,6 +9,9 @@ import TranscriptViewer from '@/components/TranscriptViewer';
 import CalendarModal from '@/components/CalendarModal';
 import { formatDate, formatCurrency, formatDuration } from '@/lib/utils';
 
+// URL per gestione eventi Calendly
+const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
+
 const LeadDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<LeadFullProfile | null>(null);
@@ -23,16 +26,20 @@ const LeadDetail: React.FC = () => {
   const [closerStatus, setCloserStatus] = useState<string>('in_lavorazione');
   const [savingCloserStatus, setSavingCloserStatus] = useState(false);
   
+  // Stati per i 4 step del processo
   const [stepChiamata, setStepChiamata] = useState<string>('da_contattare');
   const [stepChiamataData, setStepChiamataData] = useState<string>('');
   const [stepSopralluogo, setStepSopralluogo] = useState<string>('da_organizzare');
   const [stepSopralluogoData, setStepSopralluogoData] = useState<string>('');
+  const [stepSopralluogoOrario, setStepSopralluogoOrario] = useState<string>('');
   const [stepAccordo, setStepAccordo] = useState<string>('da_inviare');
   const [stepAccordoData, setStepAccordoData] = useState<string>('');
   const [stepPreliminare, setStepPreliminare] = useState<string>('da_organizzare');
   const [stepPreliminareData, setStepPreliminareData] = useState<string>('');
+  const [stepPreliminareOrario, setStepPreliminareOrario] = useState<string>('');
   const [savingSteps, setSavingSteps] = useState(false);
 
+  // Stati per modal Calendly
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarModalType, setCalendarModalType] = useState<'sopralluogo' | 'preliminare'>('sopralluogo');
 
@@ -50,10 +57,12 @@ const LeadDetail: React.FC = () => {
           if (details.property.step_chiamata_data) setStepChiamataData(details.property.step_chiamata_data);
           if (details.property.step_sopralluogo) setStepSopralluogo(details.property.step_sopralluogo);
           if (details.property.step_sopralluogo_data) setStepSopralluogoData(details.property.step_sopralluogo_data);
+          if (details.property.step_sopralluogo_orario) setStepSopralluogoOrario(details.property.step_sopralluogo_orario);
           if (details.property.step_accordo) setStepAccordo(details.property.step_accordo);
           if (details.property.step_accordo_data) setStepAccordoData(details.property.step_accordo_data);
           if (details.property.step_preliminare) setStepPreliminare(details.property.step_preliminare);
           if (details.property.step_preliminare_data) setStepPreliminareData(details.property.step_preliminare_data);
+          if (details.property.step_preliminare_orario) setStepPreliminareOrario(details.property.step_preliminare_orario);
         }
       } catch (err) {
         setError('Impossibile caricare i dettagli del lead. Verifica l\'ID o riprova.');
@@ -146,16 +155,20 @@ const LeadDetail: React.FC = () => {
     setCalendarModalOpen(true);
   };
 
-  const handleEventCreated = (date: string) => {
+  const handleEventCreated = (date: string, time: string) => {
     if (calendarModalType === 'sopralluogo') {
       setStepSopralluogoData(date);
+      setStepSopralluogoOrario(time);
       setStepSopralluogo('organizzato');
       saveStep('step_sopralluogo_data', date);
+      saveStep('step_sopralluogo_orario', time);
       saveStep('step_sopralluogo', 'organizzato');
     } else {
       setStepPreliminareData(date);
+      setStepPreliminareOrario(time);
       setStepPreliminare('organizzato');
       saveStep('step_preliminare_data', date);
+      saveStep('step_preliminare_orario', time);
       saveStep('step_preliminare', 'organizzato');
     }
   };
@@ -168,6 +181,19 @@ const LeadDetail: React.FC = () => {
   const handleDateChange = (field: string, setDateFn: (val: string) => void, value: string) => {
     setDateFn(value);
     saveStep(field, value);
+  };
+
+  // Funzione helper per il bottone salva note
+  const renderSaveNotesButton = () => {
+    if (savingNotes) {
+      return (
+        <span className="flex items-center gap-1.5">
+          <Loader2 size={12} className="animate-spin" />
+          Salvo...
+        </span>
+      );
+    }
+    return 'Salva Note';
   };
 
   if (loading) {
@@ -202,6 +228,7 @@ const LeadDetail: React.FC = () => {
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
+  // Componente per step con date picker (Chiamata, Accordo)
   const StepWithDatePicker = ({ 
     label, 
     icon: Icon, 
@@ -232,53 +259,56 @@ const LeadDetail: React.FC = () => {
     const isCompleted = status === completedLabel;
     
     return (
-      <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-        <div className="flex items-center gap-2 w-28 flex-shrink-0">
-          <Icon size={16} className="text-slate-400" />
-          <span className="text-sm font-medium text-slate-700">{label}</span>
-        </div>
-        
-        <div className="flex rounded-lg overflow-hidden border border-slate-200">
-          <button
-            onClick={() => {
-              setStatus(pendingLabel);
-              saveStep(field, pendingLabel);
-            }}
-            className={`w-28 py-2 text-xs font-medium transition-colors ${
-              !isCompleted 
-                ? 'bg-red-500 text-white' 
-                : 'bg-white text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            {pendingText}
-          </button>
-          <button
-            onClick={() => {
-              setStatus(completedLabel);
-              saveStep(field, completedLabel);
-            }}
-            className={`w-28 py-2 text-xs font-medium transition-colors ${
-              isCompleted 
-                ? 'bg-emerald-500 text-white' 
-                : 'bg-white text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            {completedText}
-          </button>
-        </div>
+      <div className="py-3 border-b border-slate-100 last:border-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 w-24 flex-shrink-0">
+            <Icon size={16} className="text-slate-400" />
+            <span className="text-sm font-medium text-slate-700">{label}</span>
+          </div>
+          
+          <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+            <button
+              onClick={() => {
+                setStatus(pendingLabel);
+                saveStep(field, pendingLabel);
+              }}
+              className={`w-24 py-2 text-xs font-medium transition-colors ${
+                !isCompleted 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {pendingText}
+            </button>
+            <button
+              onClick={() => {
+                setStatus(completedLabel);
+                saveStep(field, completedLabel);
+              }}
+              className={`w-24 py-2 text-xs font-medium transition-colors ${
+                isCompleted 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {completedText}
+            </button>
+          </div>
 
-        <div className="flex-1">
-          <input
-            type="date"
-            value={dateValue}
-            onChange={(e) => handleDateChange(dateField, setDateValue, e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-          />
+          <div className="flex-1">
+            <input
+              type="date"
+              value={dateValue}
+              onChange={(e) => handleDateChange(dateField, setDateValue, e.target.value)}
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+            />
+          </div>
         </div>
       </div>
     );
   };
 
+  // Componente per step con Calendly (Sopralluogo, Preliminare)
   const StepWithCalendly = ({ 
     label, 
     icon: Icon, 
@@ -289,6 +319,7 @@ const LeadDetail: React.FC = () => {
     pendingLabel,
     calendarType,
     dateValue,
+    timeValue,
   }: { 
     label: string;
     icon: React.ElementType;
@@ -299,6 +330,7 @@ const LeadDetail: React.FC = () => {
     pendingLabel: string;
     calendarType: 'sopralluogo' | 'preliminare';
     dateValue?: string;
+    timeValue?: string;
   }) => {
     const isCompleted = status === completedLabel;
     const hasBooking = Boolean(dateValue);
@@ -306,11 +338,11 @@ const LeadDetail: React.FC = () => {
     const renderActionButton = () => {
       if (hasBooking) {
         return (
-          <a
-            href="https://calendly.com/app/scheduled_events/user/me"
+          
+            href={CALENDLY_SCHEDULED_EVENTS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
           >
             <ExternalLink size={14} />
             Modifica
@@ -320,7 +352,7 @@ const LeadDetail: React.FC = () => {
       return (
         <button
           onClick={() => openCalendarModal(calendarType)}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
+          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
         >
           <Calendar size={14} />
           Prenota
@@ -329,63 +361,65 @@ const LeadDetail: React.FC = () => {
     };
     
     return (
-      <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-        <div className="flex items-center gap-2 w-28 flex-shrink-0">
-          <Icon size={16} className="text-slate-400" />
-          <span className="text-sm font-medium text-slate-700">{label}</span>
+      <div className="py-3 border-b border-slate-100 last:border-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 w-24 flex-shrink-0">
+            <Icon size={16} className="text-slate-400" />
+            <span className="text-sm font-medium text-slate-700">{label}</span>
+          </div>
+          
+          <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+            <button
+              onClick={() => {
+                setStatus(pendingLabel);
+                saveStep(field, pendingLabel);
+              }}
+              className={`w-24 py-2 text-xs font-medium transition-colors ${
+                !isCompleted 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              Da organizzare
+            </button>
+            <button
+              onClick={() => {
+                setStatus(completedLabel);
+                saveStep(field, completedLabel);
+              }}
+              className={`w-24 py-2 text-xs font-medium transition-colors ${
+                isCompleted 
+                  ? 'bg-emerald-500 text-white' 
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              Organizzato
+            </button>
+          </div>
+
+          <div className="flex-1">
+            {renderActionButton()}
+          </div>
         </div>
         
-        <div className="flex rounded-lg overflow-hidden border border-slate-200">
-          <button
-            onClick={() => {
-              setStatus(pendingLabel);
-              saveStep(field, pendingLabel);
-            }}
-            className={`w-28 py-2 text-xs font-medium transition-colors ${
-              !isCompleted 
-                ? 'bg-red-500 text-white' 
-                : 'bg-white text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            Da organizzare
-          </button>
-          <button
-            onClick={() => {
-              setStatus(completedLabel);
-              saveStep(field, completedLabel);
-            }}
-            className={`w-28 py-2 text-xs font-medium transition-colors ${
-              isCompleted 
-                ? 'bg-emerald-500 text-white' 
-                : 'bg-white text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            Organizzato
-          </button>
-        </div>
-
-        <div className="flex-1 flex items-center gap-2">
-          {renderActionButton()}
-          {dateValue && (
-            <span className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg font-medium">
-              {formatDateDisplay(dateValue)}
-            </span>
-          )}
-        </div>
+        {/* Riga con data e orario appuntamento */}
+        {hasBooking && (
+          <div className="mt-2 ml-[calc(24px+0.5rem+96px+0.75rem)] pl-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+              <Calendar size={12} />
+              <span className="font-medium">{formatDateDisplay(dateValue || '')}</span>
+              {timeValue && (
+                <>
+                  <span className="text-emerald-400">•</span>
+                  <Clock size={12} />
+                  <span className="font-medium">{timeValue}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
-  };
-
-  const renderSaveNotesButton = () => {
-    if (savingNotes) {
-      return (
-        <span className="flex items-center gap-1.5">
-          <Loader2 size={12} className="animate-spin" />
-          Salvo...
-        </span>
-      );
-    }
-    return 'Salva Note';
   };
 
   return (
@@ -403,6 +437,7 @@ const LeadDetail: React.FC = () => {
         />
       )}
 
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
           <Link to="/" className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
@@ -467,9 +502,240 @@ const LeadDetail: React.FC = () => {
         </div>
       </div>
 
+      {/* Grid a due colonne - LAYOUT RIORGANIZZATO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
+        {/* COLONNA SINISTRA: Scheda Immobile + Valutazione + Note */}
         <section className="space-y-4">
+          
+          {/* Scheda Immobile */}
+          {property ? (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-slate-800">
+                  <Building2 size={16} className="text-bylo-blue" />
+                  <h2>Scheda Immobile</h2>
+                </div>
+                <Badge status={property.status} type="property" />
+              </div>
+              <div className="p-5">
+                <div className="flex items-start gap-3 mb-4 pb-4 border-b border-slate-100">
+                  <div className="mt-0.5 bg-slate-100 p-2 rounded-lg text-slate-500">
+                    <MapPin size={16} />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900">{property.indirizzo_completo}</h4>
+                    <p className="text-sm text-slate-500">
+                      {property.tipo_immobile || 'Immobile'} • {property.superficie_mq} mq • {property.numero_locali} locali
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-y-2.5 gap-x-6 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Tipologia</span>
+                    <span className="font-medium">{property.tipo_immobile || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Condizioni</span>
+                    <span className="font-medium">{property.condizioni_immobile || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Superficie</span>
+                    <span className="font-medium">{property.superficie_mq ? `${property.superficie_mq} mq` : '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Locali</span>
+                    <span className="font-medium">{property.numero_locali || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Bagni</span>
+                    <span className="font-medium">{property.numero_bagni || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Piano</span>
+                    <span className="font-medium">{property.piano_immobile || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Ascensore</span>
+                    <span className="font-medium">{property.ascensore || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Anno costruzione</span>
+                    <span className="font-medium">{property.anno_costruzione || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Aree esterne</span>
+                    <span className="font-medium">{property.aree_esterne || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Pertinenze</span>
+                    <span className="font-medium">{property.pertinenze || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <div className="text-center py-6 text-slate-400">
+                <Building2 size={40} className="mx-auto mb-2 opacity-20" />
+                <p className="text-sm">Valutazione immobile non disponibile</p>
+              </div>
+            </div>
+          )}
+
+          {/* Valutazione Economica */}
+          {property && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-emerald-50">
+                <h3 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
+                  <TrendingUp size={14} />
+                  Valutazione Economica
+                </h3>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-3">
+                    <div className="text-[10px] text-bylo-blue font-medium uppercase tracking-wide mb-0.5">Range Offerta</div>
+                    <div className="text-xl font-bold text-bylo-blue">
+                      {prezzoAcquistoMin && prezzoAcquistoMax 
+                        ? `${formatCurrency(prezzoAcquistoMin)} - ${formatCurrency(prezzoAcquistoMax)}`
+                        : '-'
+                      }
+                    </div>
+                  </div>
+
+                  <div className={`rounded-lg p-3 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
+                    <div className={`text-[10px] font-medium uppercase tracking-wide mb-0.5 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
+                      Offerta Definitiva
+                    </div>
+                    <div className={`text-xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
+                      {property.offerta_definitiva ? formatCurrency(property.offerta_definitiva) : 'Da definire'}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-500 mb-0.5">Prezzo Rivendita</div>
+                      <div className="text-base font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
+                    </div>
+                    <div className="bg-slate-50 rounded-lg p-2.5">
+                      <div className="text-[10px] text-slate-500 mb-0.5">Costi Riqualificazione</div>
+                      <div className="text-base font-semibold text-slate-900">{formatCurrency(property.totale_costi_escluso_acquisto)}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Note Closer */}
+          {property && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-amber-50">
+                <h3 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                  <StickyNote size={14} />
+                  Note Closer
+                </h3>
+              </div>
+              <div className="p-4">
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Aggiungi note su questo lead..."
+                  className="w-full h-24 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
+                />
+                <div className="mt-2 flex justify-between items-center">
+                  <span className="text-xs text-slate-400">
+                    {notesSaved && (
+                      <span className="text-emerald-600 flex items-center gap-1">
+                        <Check size={12} /> Salvate!
+                      </span>
+                    )}
+                  </span>
+                  <button 
+                    onClick={saveNotes}
+                    disabled={savingNotes}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {renderSaveNotesButton()}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* COLONNA DESTRA: Processo Acquisizione + Conversazione Setter */}
+        <section className="space-y-4">
+          
+          {/* Processo Acquisizione */}
+          {property && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-bylo-blue/5 to-transparent">
+                <div className="flex items-center gap-2 font-semibold text-slate-800">
+                  <FileSignature size={16} className="text-bylo-blue" />
+                  <h2>Processo Acquisizione</h2>
+                </div>
+              </div>
+              <div className="px-5 py-2">
+                <StepWithDatePicker
+                  label="Chiamata"
+                  icon={Phone}
+                  status={stepChiamata}
+                  setStatus={setStepChiamata}
+                  field="step_chiamata"
+                  pendingLabel="da_contattare"
+                  completedLabel="contattato"
+                  dateValue={stepChiamataData}
+                  setDateValue={setStepChiamataData}
+                  dateField="step_chiamata_data"
+                  pendingText="Da contattare"
+                  completedText="Contattato"
+                />
+                <StepWithCalendly
+                  label="Sopralluogo"
+                  icon={Home}
+                  status={stepSopralluogo}
+                  setStatus={setStepSopralluogo}
+                  field="step_sopralluogo"
+                  pendingLabel="da_organizzare"
+                  completedLabel="organizzato"
+                  calendarType="sopralluogo"
+                  dateValue={stepSopralluogoData}
+                  timeValue={stepSopralluogoOrario}
+                />
+                <StepWithDatePicker
+                  label="Accordo"
+                  icon={Send}
+                  status={stepAccordo}
+                  setStatus={setStepAccordo}
+                  field="step_accordo"
+                  pendingLabel="da_inviare"
+                  completedLabel="inviato"
+                  dateValue={stepAccordoData}
+                  setDateValue={setStepAccordoData}
+                  dateField="step_accordo_data"
+                  pendingText="Da inviare"
+                  completedText="Inviato"
+                />
+                <StepWithCalendly
+                  label="Preliminare"
+                  icon={FileSignature}
+                  status={stepPreliminare}
+                  setStatus={setStepPreliminare}
+                  field="step_preliminare"
+                  pendingLabel="da_organizzare"
+                  completedLabel="organizzato"
+                  calendarType="preliminare"
+                  dateValue={stepPreliminareData}
+                  timeValue={stepPreliminareOrario}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Conversazione Setter */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-slate-800">
@@ -549,228 +815,6 @@ const LeadDetail: React.FC = () => {
               )}
             </div>
           </div>
-        </section>
-
-        <section className="space-y-4">
-          
-          {property && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 bg-gradient-to-r from-bylo-blue/5 to-transparent">
-                <div className="flex items-center gap-2 font-semibold text-slate-800">
-                  <FileSignature size={16} className="text-bylo-blue" />
-                  <h2>Processo Acquisizione</h2>
-                </div>
-              </div>
-              <div className="px-5 py-2">
-                <StepWithDatePicker
-                  label="Chiamata"
-                  icon={Phone}
-                  status={stepChiamata}
-                  setStatus={setStepChiamata}
-                  field="step_chiamata"
-                  pendingLabel="da_contattare"
-                  completedLabel="contattato"
-                  dateValue={stepChiamataData}
-                  setDateValue={setStepChiamataData}
-                  dateField="step_chiamata_data"
-                  pendingText="Da contattare"
-                  completedText="Contattato"
-                />
-                <StepWithCalendly
-                  label="Sopralluogo"
-                  icon={Home}
-                  status={stepSopralluogo}
-                  setStatus={setStepSopralluogo}
-                  field="step_sopralluogo"
-                  pendingLabel="da_organizzare"
-                  completedLabel="organizzato"
-                  calendarType="sopralluogo"
-                  dateValue={stepSopralluogoData}
-                />
-                <StepWithDatePicker
-                  label="Accordo"
-                  icon={Send}
-                  status={stepAccordo}
-                  setStatus={setStepAccordo}
-                  field="step_accordo"
-                  pendingLabel="da_inviare"
-                  completedLabel="inviato"
-                  dateValue={stepAccordoData}
-                  setDateValue={setStepAccordoData}
-                  dateField="step_accordo_data"
-                  pendingText="Da inviare"
-                  completedText="Inviato"
-                />
-                <StepWithCalendly
-                  label="Preliminare"
-                  icon={FileSignature}
-                  status={stepPreliminare}
-                  setStatus={setStepPreliminare}
-                  field="step_preliminare"
-                  pendingLabel="da_organizzare"
-                  completedLabel="organizzato"
-                  calendarType="preliminare"
-                  dateValue={stepPreliminareData}
-                />
-              </div>
-            </div>
-          )}
-
-          {!property && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <div className="text-center py-6 text-slate-400">
-                <Building2 size={40} className="mx-auto mb-2 opacity-20" />
-                <p className="text-sm">Valutazione immobile non disponibile</p>
-              </div>
-            </div>
-          )}
-
-          {property && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                <div className="flex items-center gap-2 font-semibold text-slate-800">
-                  <Building2 size={16} className="text-bylo-blue" />
-                  <h2>Scheda Immobile</h2>
-                </div>
-                <Badge status={property.status} type="property" />
-              </div>
-              <div className="p-5">
-                <div className="flex items-start gap-3 mb-4 pb-4 border-b border-slate-100">
-                  <div className="mt-0.5 bg-slate-100 p-2 rounded-lg text-slate-500">
-                    <MapPin size={16} />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-900">{property.indirizzo_completo}</h4>
-                    <p className="text-sm text-slate-500">
-                      {property.tipo_immobile || 'Immobile'} • {property.superficie_mq} mq • {property.numero_locali} locali
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-y-2.5 gap-x-6 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Tipologia</span>
-                    <span className="font-medium">{property.tipo_immobile || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Condizioni</span>
-                    <span className="font-medium">{property.condizioni_immobile || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Superficie</span>
-                    <span className="font-medium">{property.superficie_mq ? `${property.superficie_mq} mq` : '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Locali</span>
-                    <span className="font-medium">{property.numero_locali || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Bagni</span>
-                    <span className="font-medium">{property.numero_bagni || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Piano</span>
-                    <span className="font-medium">{property.piano_immobile || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Ascensore</span>
-                    <span className="font-medium">{property.ascensore || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Anno costruzione</span>
-                    <span className="font-medium">{property.anno_costruzione || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Aree esterne</span>
-                    <span className="font-medium">{property.aree_esterne || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Pertinenze</span>
-                    <span className="font-medium">{property.pertinenze || '-'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {property && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 bg-emerald-50">
-                <h3 className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
-                  <TrendingUp size={14} />
-                  Valutazione Economica
-                </h3>
-              </div>
-              <div className="p-4">
-                <div className="space-y-3">
-                  <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-3">
-                    <div className="text-[10px] text-bylo-blue font-medium uppercase tracking-wide mb-0.5">Range Offerta</div>
-                    <div className="text-xl font-bold text-bylo-blue">
-                      {prezzoAcquistoMin && prezzoAcquistoMax 
-                        ? `${formatCurrency(prezzoAcquistoMin)} - ${formatCurrency(prezzoAcquistoMax)}`
-                        : '-'
-                      }
-                    </div>
-                  </div>
-
-                  <div className={`rounded-lg p-3 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
-                    <div className={`text-[10px] font-medium uppercase tracking-wide mb-0.5 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
-                      Offerta Definitiva
-                    </div>
-                    <div className={`text-xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
-                      {property.offerta_definitiva ? formatCurrency(property.offerta_definitiva) : 'Da definire'}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-50 rounded-lg p-2.5">
-                      <div className="text-[10px] text-slate-500 mb-0.5">Prezzo Rivendita</div>
-                      <div className="text-base font-semibold text-slate-900">{formatCurrency(property.prezzo_rivendita)}</div>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-2.5">
-                      <div className="text-[10px] text-slate-500 mb-0.5">Costi Riqualificazione</div>
-                      <div className="text-base font-semibold text-slate-900">{formatCurrency(property.totale_costi_escluso_acquisto)}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {property && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 bg-amber-50">
-                <h3 className="text-sm font-semibold text-amber-800 flex items-center gap-2">
-                  <StickyNote size={14} />
-                  Note Closer
-                </h3>
-              </div>
-              <div className="p-4">
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Aggiungi note su questo lead..."
-                  className="w-full h-24 p-3 text-sm border border-slate-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent placeholder-slate-400"
-                />
-                <div className="mt-2 flex justify-between items-center">
-                  <span className="text-xs text-slate-400">
-                    {notesSaved && (
-                      <span className="text-emerald-600 flex items-center gap-1">
-                        <Check size={12} /> Salvate!
-                      </span>
-                    )}
-                  </span>
-                  <button 
-                    onClick={saveNotes}
-                    disabled={savingNotes}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    {renderSaveNotesButton()}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </section>
 
       </div>
