@@ -464,7 +464,7 @@ const LeadDetail: React.FC = () => {
                 {/* STEP 1: Chiamata */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <Phone size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Chiamata</span>
                     </div>
@@ -496,7 +496,7 @@ const LeadDetail: React.FC = () => {
                 {/* STEP 2: Sopralluogo */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <Home size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Sopralluogo</span>
                     </div>
@@ -514,13 +514,25 @@ const LeadDetail: React.FC = () => {
                         Organizzato
                       </button>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={stepSopralluogoData}
+                        onChange={(e) => handleDateChange('step_sopralluogo_data', setStepSopralluogoData, e.target.value)}
+                        className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                      />
+                      <input
+                        type="time"
+                        value={stepSopralluogoOrario}
+                        onChange={(e) => { setStepSopralluogoOrario(e.target.value); saveStep('step_sopralluogo_orario', e.target.value); }}
+                        className="w-24 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                      />
                       {stepSopralluogoData ? (
                         <a
                           href={CALENDLY_SCHEDULED_EVENTS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
                         >
                           <ExternalLink size={14} />
                           Modifica
@@ -528,7 +540,7 @@ const LeadDetail: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => openCalendarModal('sopralluogo')}
-                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
                         >
                           <Calendar size={14} />
                           Prenota
@@ -536,27 +548,12 @@ const LeadDetail: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  {stepSopralluogoData && (
-                    <div className="mt-2 ml-28">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
-                        <Calendar size={12} />
-                        <span className="font-medium">{formatDateDisplay(stepSopralluogoData)}</span>
-                        {stepSopralluogoOrario && (
-                          <span className="flex items-center gap-1">
-                            <span className="text-emerald-400">•</span>
-                            <Clock size={12} />
-                            <span className="font-medium">{stepSopralluogoOrario}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* STEP 3: Accordo */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <Send size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Accordo</span>
                     </div>
@@ -588,7 +585,7 @@ const LeadDetail: React.FC = () => {
                 {/* STEP 4: Preliminare */}
                 <div className="py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                    <div className="flex items-center gap-2 w-32 flex-shrink-0">
                       <FileSignature size={16} className="text-slate-400" />
                       <span className="text-sm font-medium text-slate-700">Preliminare</span>
                     </div>
@@ -606,13 +603,25 @@ const LeadDetail: React.FC = () => {
                         Organizzato
                       </button>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={stepPreliminareData}
+                        onChange={(e) => handleDateChange('step_preliminare_data', setStepPreliminareData, e.target.value)}
+                        className="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                      />
+                      <input
+                        type="time"
+                        value={stepPreliminareOrario}
+                        onChange={(e) => { setStepPreliminareOrario(e.target.value); saveStep('step_preliminare_orario', e.target.value); }}
+                        className="w-24 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                      />
                       {stepPreliminareData ? (
                         <a
                           href={CALENDLY_SCHEDULED_EVENTS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
                         >
                           <ExternalLink size={14} />
                           Modifica
@@ -620,7 +629,7 @@ const LeadDetail: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => openCalendarModal('preliminare')}
-                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
                         >
                           <Calendar size={14} />
                           Prenota
@@ -628,21 +637,6 @@ const LeadDetail: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  {stepPreliminareData && (
-                    <div className="mt-2 ml-28">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
-                        <Calendar size={12} />
-                        <span className="font-medium">{formatDateDisplay(stepPreliminareData)}</span>
-                        {stepPreliminareOrario && (
-                          <span className="flex items-center gap-1">
-                            <span className="text-emerald-400">•</span>
-                            <Clock size={12} />
-                            <span className="font-medium">{stepPreliminareOrario}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
               </div>
