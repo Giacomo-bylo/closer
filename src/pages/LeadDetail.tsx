@@ -31,11 +31,13 @@ const LeadDetail: React.FC = () => {
   
   const [stepChiamata, setStepChiamata] = useState<string>('da_contattare');
   const [stepChiamataData, setStepChiamataData] = useState<string>('');
+  const [stepChiamataOrario, setStepChiamataOrario] = useState<string>('');
   const [stepSopralluogo, setStepSopralluogo] = useState<string>('da_organizzare');
   const [stepSopralluogoData, setStepSopralluogoData] = useState<string>('');
   const [stepSopralluogoOrario, setStepSopralluogoOrario] = useState<string>('');
   const [stepAccordo, setStepAccordo] = useState<string>('da_inviare');
   const [stepAccordoData, setStepAccordoData] = useState<string>('');
+  const [stepAccordoOrario, setStepAccordoOrario] = useState<string>('');
   const [stepPreliminare, setStepPreliminare] = useState<string>('da_organizzare');
   const [stepPreliminareData, setStepPreliminareData] = useState<string>('');
   const [stepPreliminareOrario, setStepPreliminareOrario] = useState<string>('');
@@ -55,11 +57,13 @@ const LeadDetail: React.FC = () => {
           if (details.property.closer_status) setCloserStatus(details.property.closer_status);
           if (details.property.step_chiamata) setStepChiamata(details.property.step_chiamata);
           if (details.property.step_chiamata_data) setStepChiamataData(details.property.step_chiamata_data);
+          if (details.property.step_chiamata_orario) setStepChiamataOrario(details.property.step_chiamata_orario);
           if (details.property.step_sopralluogo) setStepSopralluogo(details.property.step_sopralluogo);
           if (details.property.step_sopralluogo_data) setStepSopralluogoData(details.property.step_sopralluogo_data);
           if (details.property.step_sopralluogo_orario) setStepSopralluogoOrario(details.property.step_sopralluogo_orario);
           if (details.property.step_accordo) setStepAccordo(details.property.step_accordo);
           if (details.property.step_accordo_data) setStepAccordoData(details.property.step_accordo_data);
+          if (details.property.step_accordo_orario) setStepAccordoOrario(details.property.step_accordo_orario);
           if (details.property.step_preliminare) setStepPreliminare(details.property.step_preliminare);
           if (details.property.step_preliminare_data) setStepPreliminareData(details.property.step_preliminare_data);
           if (details.property.step_preliminare_orario) setStepPreliminareOrario(details.property.step_preliminare_orario);
@@ -482,13 +486,26 @@ const LeadDetail: React.FC = () => {
                         Contattato
                       </button>
                     </div>
-                    <div className="flex-1"></div>
-                    <input
-                      type="date"
-                      value={stepChiamataData}
-                      onChange={(e) => handleDateChange('step_chiamata_data', setStepChiamataData, e.target.value)}
-                      className="w-28 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                    />
+                  </div>
+                  <div className="mt-2 ml-44 flex items-center gap-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                      <Calendar size={12} />
+                      <input
+                        type="date"
+                        value={stepChiamataData}
+                        onChange={(e) => handleDateChange('step_chiamata_data', setStepChiamataData, e.target.value)}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                      />
+                    </div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
+                      <Clock size={12} />
+                      <input
+                        type="time"
+                        value={stepChiamataOrario}
+                        onChange={(e) => { setStepChiamataOrario(e.target.value); saveStep('step_chiamata_orario', e.target.value); }}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -514,43 +531,36 @@ const LeadDetail: React.FC = () => {
                       </button>
                     </div>
                     <div className="flex-1"></div>
-                    {stepSopralluogoData ? (
-                      <a
-                        href={CALENDLY_SCHEDULED_EVENTS_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        <ExternalLink size={14} />
-                        Modifica
-                      </a>
-                    ) : (
-                      <button
-                        onClick={() => openCalendarModal('sopralluogo')}
-                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        <Calendar size={14} />
-                        Prenota
-                      </button>
-                    )}
+                    <a
+                      href={CALENDLY_SCHEDULED_EVENTS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      <ExternalLink size={14} />
+                      Calendly
+                    </a>
                   </div>
-                  {stepSopralluogoData && (
-                    <div className="mt-2 ml-44 flex items-center gap-3">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
-                        <Calendar size={12} />
-                        <span className="font-medium">{formatDateDisplay(stepSopralluogoData)}</span>
-                      </div>
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700 w-fit">
-                        <Clock size={12} />
-                        <input
-                          type="time"
-                          value={stepSopralluogoOrario}
-                          onChange={(e) => { setStepSopralluogoOrario(e.target.value); saveStep('step_sopralluogo_orario', e.target.value); }}
-                          className="bg-transparent border-none focus:outline-none font-medium text-emerald-700 w-[60px]"
-                        />
-                      </div>
+                  <div className="mt-2 ml-44 flex items-center gap-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                      <Calendar size={12} />
+                      <input
+                        type="date"
+                        value={stepSopralluogoData}
+                        onChange={(e) => handleDateChange('step_sopralluogo_data', setStepSopralluogoData, e.target.value)}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                      />
                     </div>
-                  )}
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
+                      <Clock size={12} />
+                      <input
+                        type="time"
+                        value={stepSopralluogoOrario}
+                        onChange={(e) => { setStepSopralluogoOrario(e.target.value); saveStep('step_sopralluogo_orario', e.target.value); }}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* STEP 3: Accordo */}
@@ -574,13 +584,26 @@ const LeadDetail: React.FC = () => {
                         Inviato
                       </button>
                     </div>
-                    <div className="flex-1"></div>
-                    <input
-                      type="date"
-                      value={stepAccordoData}
-                      onChange={(e) => handleDateChange('step_accordo_data', setStepAccordoData, e.target.value)}
-                      className="w-28 px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                    />
+                  </div>
+                  <div className="mt-2 ml-44 flex items-center gap-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                      <Calendar size={12} />
+                      <input
+                        type="date"
+                        value={stepAccordoData}
+                        onChange={(e) => handleDateChange('step_accordo_data', setStepAccordoData, e.target.value)}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                      />
+                    </div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
+                      <Clock size={12} />
+                      <input
+                        type="time"
+                        value={stepAccordoOrario}
+                        onChange={(e) => { setStepAccordoOrario(e.target.value); saveStep('step_accordo_orario', e.target.value); }}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -606,43 +629,36 @@ const LeadDetail: React.FC = () => {
                       </button>
                     </div>
                     <div className="flex-1"></div>
-                    {stepPreliminareData ? (
-                      <a
-                        href={CALENDLY_SCHEDULED_EVENTS_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        <ExternalLink size={14} />
-                        Modifica
-                      </a>
-                    ) : (
-                      <button
-                        onClick={() => openCalendarModal('preliminare')}
-                        className="flex items-center justify-center gap-1.5 w-28 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        <Calendar size={14} />
-                        Prenota
-                      </button>
-                    )}
+                    <a
+                      href={CALENDLY_SCHEDULED_EVENTS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      <ExternalLink size={14} />
+                      Calendly
+                    </a>
                   </div>
-                  {stepPreliminareData && (
-                    <div className="mt-2 ml-44 flex items-center gap-3">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
-                        <Calendar size={12} />
-                        <span className="font-medium">{formatDateDisplay(stepPreliminareData)}</span>
-                      </div>
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700 w-fit">
-                        <Clock size={12} />
-                        <input
-                          type="time"
-                          value={stepPreliminareOrario}
-                          onChange={(e) => { setStepPreliminareOrario(e.target.value); saveStep('step_preliminare_orario', e.target.value); }}
-                          className="bg-transparent border-none focus:outline-none font-medium text-emerald-700 w-[60px]"
-                        />
-                      </div>
+                  <div className="mt-2 ml-44 flex items-center gap-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                      <Calendar size={12} />
+                      <input
+                        type="date"
+                        value={stepPreliminareData}
+                        onChange={(e) => handleDateChange('step_preliminare_data', setStepPreliminareData, e.target.value)}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                      />
                     </div>
-                  )}
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
+                      <Clock size={12} />
+                      <input
+                        type="time"
+                        value={stepPreliminareOrario}
+                        onChange={(e) => { setStepPreliminareOrario(e.target.value); saveStep('step_preliminare_orario', e.target.value); }}
+                        className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                      />
+                    </div>
+                  </div>
                 </div>
 
               </div>
