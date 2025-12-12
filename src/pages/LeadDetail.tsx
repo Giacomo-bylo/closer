@@ -540,13 +540,15 @@ const LeadDetail: React.FC = () => {
                         <Calendar size={12} />
                         <span className="font-medium">{formatDateDisplay(stepSopralluogoData)}</span>
                       </div>
-                      <input
-                        type="time"
-                        value={stepSopralluogoOrario}
-                        onChange={(e) => { setStepSopralluogoOrario(e.target.value); saveStep('step_sopralluogo_orario', e.target.value); }}
-                        placeholder="Orario"
-                        className="w-24 px-3 py-1.5 text-xs border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                      />
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+                        <Clock size={12} />
+                        <input
+                          type="time"
+                          value={stepSopralluogoOrario}
+                          onChange={(e) => { setStepSopralluogoOrario(e.target.value); saveStep('step_sopralluogo_orario', e.target.value); }}
+                          className="bg-transparent border-none focus:outline-none font-medium text-emerald-700 w-20"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -630,13 +632,15 @@ const LeadDetail: React.FC = () => {
                         <Calendar size={12} />
                         <span className="font-medium">{formatDateDisplay(stepPreliminareData)}</span>
                       </div>
-                      <input
-                        type="time"
-                        value={stepPreliminareOrario}
-                        onChange={(e) => { setStepPreliminareOrario(e.target.value); saveStep('step_preliminare_orario', e.target.value); }}
-                        placeholder="Orario"
-                        className="w-24 px-3 py-1.5 text-xs border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-                      />
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+                        <Clock size={12} />
+                        <input
+                          type="time"
+                          value={stepPreliminareOrario}
+                          onChange={(e) => { setStepPreliminareOrario(e.target.value); saveStep('step_preliminare_orario', e.target.value); }}
+                          className="bg-transparent border-none focus:outline-none font-medium text-emerald-700 w-20"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
