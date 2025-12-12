@@ -492,18 +492,20 @@ const LeadDetail: React.FC = () => {
                       <Calendar size={12} />
                       <input
                         type="date"
-                        value={stepChiamataData}
+                        value={stepChiamataData || ''}
                         onChange={(e) => handleDateChange('step_chiamata_data', setStepChiamataData, e.target.value)}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                        placeholder=""
                       />
                     </div>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
                       <Clock size={12} />
                       <input
                         type="time"
-                        value={stepChiamataOrario}
+                        value={stepChiamataOrario || ''}
                         onChange={(e) => { setStepChiamataOrario(e.target.value); saveStep('step_chiamata_orario', e.target.value); }}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                        placeholder=""
                       />
                     </div>
                   </div>
@@ -546,18 +548,20 @@ const LeadDetail: React.FC = () => {
                       <Calendar size={12} />
                       <input
                         type="date"
-                        value={stepSopralluogoData}
+                        value={stepSopralluogoData || ''}
                         onChange={(e) => handleDateChange('step_sopralluogo_data', setStepSopralluogoData, e.target.value)}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                        placeholder=""
                       />
                     </div>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
                       <Clock size={12} />
                       <input
                         type="time"
-                        value={stepSopralluogoOrario}
+                        value={stepSopralluogoOrario || ''}
                         onChange={(e) => { setStepSopralluogoOrario(e.target.value); saveStep('step_sopralluogo_orario', e.target.value); }}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                        placeholder=""
                       />
                     </div>
                   </div>
@@ -590,18 +594,20 @@ const LeadDetail: React.FC = () => {
                       <Calendar size={12} />
                       <input
                         type="date"
-                        value={stepAccordoData}
+                        value={stepAccordoData || ''}
                         onChange={(e) => handleDateChange('step_accordo_data', setStepAccordoData, e.target.value)}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                        placeholder=""
                       />
                     </div>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
                       <Clock size={12} />
                       <input
                         type="time"
-                        value={stepAccordoOrario}
+                        value={stepAccordoOrario || ''}
                         onChange={(e) => { setStepAccordoOrario(e.target.value); saveStep('step_accordo_orario', e.target.value); }}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                        placeholder=""
                       />
                     </div>
                   </div>
@@ -644,18 +650,20 @@ const LeadDetail: React.FC = () => {
                       <Calendar size={12} />
                       <input
                         type="date"
-                        value={stepPreliminareData}
+                        value={stepPreliminareData || ''}
                         onChange={(e) => handleDateChange('step_preliminare_data', setStepPreliminareData, e.target.value)}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[85px]"
+                        placeholder=""
                       />
                     </div>
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 w-fit">
                       <Clock size={12} />
                       <input
                         type="time"
-                        value={stepPreliminareOrario}
+                        value={stepPreliminareOrario || ''}
                         onChange={(e) => { setStepPreliminareOrario(e.target.value); saveStep('step_preliminare_orario', e.target.value); }}
                         className="bg-transparent border-none focus:outline-none font-medium text-slate-700 w-[60px]"
+                        placeholder=""
                       />
                     </div>
                   </div>
