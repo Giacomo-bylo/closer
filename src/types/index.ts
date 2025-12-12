@@ -57,11 +57,13 @@ export interface Property {
   closer_status?: 'in_lavorazione' | 'approvato' | 'rifiutato';
   step_chiamata?: 'da_contattare' | 'contattato';
   step_chiamata_data?: string;
+  step_chiamata_orario?: string;
   step_sopralluogo?: 'da_organizzare' | 'organizzato';
   step_sopralluogo_data?: string;
   step_sopralluogo_orario?: string;
   step_accordo?: 'da_inviare' | 'inviato';
   step_accordo_data?: string;
+  step_accordo_orario?: string;
   step_preliminare?: 'da_organizzare' | 'organizzato';
   step_preliminare_data?: string;
   step_preliminare_orario?: string;
