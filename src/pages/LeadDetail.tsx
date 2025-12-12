@@ -9,7 +9,6 @@ import TranscriptViewer from '@/components/TranscriptViewer';
 import CalendarModal from '@/components/CalendarModal';
 import { formatDate, formatCurrency, formatDuration } from '@/lib/utils';
 
-// URL per gestione eventi Calendly
 const CALENDLY_SCHEDULED_EVENTS_URL = 'https://calendly.com/app/scheduled_events/user/me';
 
 const LeadDetail: React.FC = () => {
@@ -26,7 +25,6 @@ const LeadDetail: React.FC = () => {
   const [closerStatus, setCloserStatus] = useState<string>('in_lavorazione');
   const [savingCloserStatus, setSavingCloserStatus] = useState(false);
   
-  // Stati per i 4 step del processo
   const [stepChiamata, setStepChiamata] = useState<string>('da_contattare');
   const [stepChiamataData, setStepChiamataData] = useState<string>('');
   const [stepSopralluogo, setStepSopralluogo] = useState<string>('da_organizzare');
@@ -39,7 +37,6 @@ const LeadDetail: React.FC = () => {
   const [stepPreliminareOrario, setStepPreliminareOrario] = useState<string>('');
   const [savingSteps, setSavingSteps] = useState(false);
 
-  // Stati per modal Calendly
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarModalType, setCalendarModalType] = useState<'sopralluogo' | 'preliminare'>('sopralluogo');
 
@@ -183,19 +180,6 @@ const LeadDetail: React.FC = () => {
     saveStep(field, value);
   };
 
-  // Funzione helper per il bottone salva note
-  const renderSaveNotesButton = () => {
-    if (savingNotes) {
-      return (
-        <span className="flex items-center gap-1.5">
-          <Loader2 size={12} className="animate-spin" />
-          Salvo...
-        </span>
-      );
-    }
-    return 'Salva Note';
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -227,200 +211,6 @@ const LeadDetail: React.FC = () => {
 
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
-
-  // Componente per step con date picker (Chiamata, Accordo)
-  const StepWithDatePicker = ({ 
-    label, 
-    icon: Icon, 
-    status, 
-    setStatus, 
-    field,
-    completedLabel,
-    pendingLabel,
-    dateValue,
-    setDateValue,
-    dateField,
-    pendingText,
-    completedText,
-  }: { 
-    label: string;
-    icon: React.ElementType;
-    status: string;
-    setStatus: (val: string) => void;
-    field: string;
-    completedLabel: string;
-    pendingLabel: string;
-    dateValue: string;
-    setDateValue: (val: string) => void;
-    dateField: string;
-    pendingText: string;
-    completedText: string;
-  }) => {
-    const isCompleted = status === completedLabel;
-    
-    return (
-      <div className="py-3 border-b border-slate-100 last:border-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 w-24 flex-shrink-0">
-            <Icon size={16} className="text-slate-400" />
-            <span className="text-sm font-medium text-slate-700">{label}</span>
-          </div>
-          
-          <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
-            <button
-              onClick={() => {
-                setStatus(pendingLabel);
-                saveStep(field, pendingLabel);
-              }}
-              className={`w-24 py-2 text-xs font-medium transition-colors ${
-                !isCompleted 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              {pendingText}
-            </button>
-            <button
-              onClick={() => {
-                setStatus(completedLabel);
-                saveStep(field, completedLabel);
-              }}
-              className={`w-24 py-2 text-xs font-medium transition-colors ${
-                isCompleted 
-                  ? 'bg-emerald-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              {completedText}
-            </button>
-          </div>
-
-          <div className="flex-1">
-            <input
-              type="date"
-              value={dateValue}
-              onChange={(e) => handleDateChange(dateField, setDateValue, e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Componente per step con Calendly (Sopralluogo, Preliminare)
-  const StepWithCalendly = ({ 
-    label, 
-    icon: Icon, 
-    status, 
-    setStatus, 
-    field,
-    completedLabel,
-    pendingLabel,
-    calendarType,
-    dateValue,
-    timeValue,
-  }: { 
-    label: string;
-    icon: React.ElementType;
-    status: string;
-    setStatus: (val: string) => void;
-    field: string;
-    completedLabel: string;
-    pendingLabel: string;
-    calendarType: 'sopralluogo' | 'preliminare';
-    dateValue?: string;
-    timeValue?: string;
-  }) => {
-    const isCompleted = status === completedLabel;
-    const hasBooking = Boolean(dateValue);
-    
-    const renderActionButton = () => {
-      if (hasBooking) {
-        return (
-          
-            href={CALENDLY_SCHEDULED_EVENTS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
-          >
-            <ExternalLink size={14} />
-            Modifica
-          </a>
-        );
-      }
-      return (
-        <button
-          onClick={() => openCalendarModal(calendarType)}
-          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
-        >
-          <Calendar size={14} />
-          Prenota
-        </button>
-      );
-    };
-    
-    return (
-      <div className="py-3 border-b border-slate-100 last:border-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 w-24 flex-shrink-0">
-            <Icon size={16} className="text-slate-400" />
-            <span className="text-sm font-medium text-slate-700">{label}</span>
-          </div>
-          
-          <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
-            <button
-              onClick={() => {
-                setStatus(pendingLabel);
-                saveStep(field, pendingLabel);
-              }}
-              className={`w-24 py-2 text-xs font-medium transition-colors ${
-                !isCompleted 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              Da organizzare
-            </button>
-            <button
-              onClick={() => {
-                setStatus(completedLabel);
-                saveStep(field, completedLabel);
-              }}
-              className={`w-24 py-2 text-xs font-medium transition-colors ${
-                isCompleted 
-                  ? 'bg-emerald-500 text-white' 
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              Organizzato
-            </button>
-          </div>
-
-          <div className="flex-1">
-            {renderActionButton()}
-          </div>
-        </div>
-        
-        {/* Riga con data e orario appuntamento */}
-        {hasBooking && (
-          <div className="mt-2 ml-[calc(24px+0.5rem+96px+0.75rem)] pl-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
-              <Calendar size={12} />
-              <span className="font-medium">{formatDateDisplay(dateValue || '')}</span>
-              {timeValue && (
-                <>
-                  <span className="text-emerald-400">•</span>
-                  <Clock size={12} />
-                  <span className="font-medium">{timeValue}</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -502,7 +292,7 @@ const LeadDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid a due colonne - LAYOUT RIORGANIZZATO */}
+      {/* Grid a due colonne */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* COLONNA SINISTRA: Scheda Immobile + Valutazione + Note */}
@@ -658,7 +448,14 @@ const LeadDetail: React.FC = () => {
                     disabled={savingNotes}
                     className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    {renderSaveNotesButton()}
+                    {savingNotes ? (
+                      <React.Fragment>
+                        <Loader2 size={12} className="animate-spin" />
+                        Salvo...
+                      </React.Fragment>
+                    ) : (
+                      'Salva Note'
+                    )}
                   </button>
                 </div>
               </div>
@@ -679,58 +476,245 @@ const LeadDetail: React.FC = () => {
                 </div>
               </div>
               <div className="px-5 py-2">
-                <StepWithDatePicker
-                  label="Chiamata"
-                  icon={Phone}
-                  status={stepChiamata}
-                  setStatus={setStepChiamata}
-                  field="step_chiamata"
-                  pendingLabel="da_contattare"
-                  completedLabel="contattato"
-                  dateValue={stepChiamataData}
-                  setDateValue={setStepChiamataData}
-                  dateField="step_chiamata_data"
-                  pendingText="Da contattare"
-                  completedText="Contattato"
-                />
-                <StepWithCalendly
-                  label="Sopralluogo"
-                  icon={Home}
-                  status={stepSopralluogo}
-                  setStatus={setStepSopralluogo}
-                  field="step_sopralluogo"
-                  pendingLabel="da_organizzare"
-                  completedLabel="organizzato"
-                  calendarType="sopralluogo"
-                  dateValue={stepSopralluogoData}
-                  timeValue={stepSopralluogoOrario}
-                />
-                <StepWithDatePicker
-                  label="Accordo"
-                  icon={Send}
-                  status={stepAccordo}
-                  setStatus={setStepAccordo}
-                  field="step_accordo"
-                  pendingLabel="da_inviare"
-                  completedLabel="inviato"
-                  dateValue={stepAccordoData}
-                  setDateValue={setStepAccordoData}
-                  dateField="step_accordo_data"
-                  pendingText="Da inviare"
-                  completedText="Inviato"
-                />
-                <StepWithCalendly
-                  label="Preliminare"
-                  icon={FileSignature}
-                  status={stepPreliminare}
-                  setStatus={setStepPreliminare}
-                  field="step_preliminare"
-                  pendingLabel="da_organizzare"
-                  completedLabel="organizzato"
-                  calendarType="preliminare"
-                  dateValue={stepPreliminareData}
-                  timeValue={stepPreliminareOrario}
-                />
+                {/* Step Chiamata */}
+                <div className="py-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                      <Phone size={16} className="text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700">Chiamata</span>
+                    </div>
+                    <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setStepChiamata('da_contattare');
+                          saveStep('step_chiamata', 'da_contattare');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepChiamata !== 'contattato' 
+                            ? 'bg-red-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Da contattare
+                      </button>
+                      <button
+                        onClick={() => {
+                          setStepChiamata('contattato');
+                          saveStep('step_chiamata', 'contattato');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepChiamata === 'contattato' 
+                            ? 'bg-emerald-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Contattato
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="date"
+                        value={stepChiamataData}
+                        onChange={(e) => handleDateChange('step_chiamata_data', setStepChiamataData, e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step Sopralluogo */}
+                <div className="py-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                      <Home size={16} className="text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700">Sopralluogo</span>
+                    </div>
+                    <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setStepSopralluogo('da_organizzare');
+                          saveStep('step_sopralluogo', 'da_organizzare');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepSopralluogo !== 'organizzato' 
+                            ? 'bg-red-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Da organizzare
+                      </button>
+                      <button
+                        onClick={() => {
+                          setStepSopralluogo('organizzato');
+                          saveStep('step_sopralluogo', 'organizzato');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepSopralluogo === 'organizzato' 
+                            ? 'bg-emerald-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Organizzato
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      {stepSopralluogoData ? (
+                        
+                          href={CALENDLY_SCHEDULED_EVENTS_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+                        >
+                          <ExternalLink size={14} />
+                          Modifica
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => openCalendarModal('sopralluogo')}
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
+                        >
+                          <Calendar size={14} />
+                          Prenota
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {stepSopralluogoData && (
+                    <div className="mt-2 ml-32 pl-1">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+                        <Calendar size={12} />
+                        <span className="font-medium">{formatDateDisplay(stepSopralluogoData)}</span>
+                        {stepSopralluogoOrario && (
+                          <React.Fragment>
+                            <span className="text-emerald-400">•</span>
+                            <Clock size={12} />
+                            <span className="font-medium">{stepSopralluogoOrario}</span>
+                          </React.Fragment>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Step Accordo */}
+                <div className="py-3 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                      <Send size={16} className="text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700">Accordo</span>
+                    </div>
+                    <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setStepAccordo('da_inviare');
+                          saveStep('step_accordo', 'da_inviare');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepAccordo !== 'inviato' 
+                            ? 'bg-red-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Da inviare
+                      </button>
+                      <button
+                        onClick={() => {
+                          setStepAccordo('inviato');
+                          saveStep('step_accordo', 'inviato');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepAccordo === 'inviato' 
+                            ? 'bg-emerald-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Inviato
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="date"
+                        value={stepAccordoData}
+                        onChange={(e) => handleDateChange('step_accordo_data', setStepAccordoData, e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bylo-blue focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step Preliminare */}
+                <div className="py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 w-24 flex-shrink-0">
+                      <FileSignature size={16} className="text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700">Preliminare</span>
+                    </div>
+                    <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          setStepPreliminare('da_organizzare');
+                          saveStep('step_preliminare', 'da_organizzare');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepPreliminare !== 'organizzato' 
+                            ? 'bg-red-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Da organizzare
+                      </button>
+                      <button
+                        onClick={() => {
+                          setStepPreliminare('organizzato');
+                          saveStep('step_preliminare', 'organizzato');
+                        }}
+                        className={`w-24 py-2 text-xs font-medium transition-colors ${
+                          stepPreliminare === 'organizzato' 
+                            ? 'bg-emerald-500 text-white' 
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Organizzato
+                      </button>
+                    </div>
+                    <div className="flex-1">
+                      {stepPreliminareData ? (
+                        
+                          href={CALENDLY_SCHEDULED_EVENTS_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-slate-500 hover:bg-slate-600 rounded-lg transition-colors"
+                        >
+                          <ExternalLink size={14} />
+                          Modifica
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => openCalendarModal('preliminare')}
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors"
+                        >
+                          <Calendar size={14} />
+                          Prenota
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {stepPreliminareData && (
+                    <div className="mt-2 ml-32 pl-1">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
+                        <Calendar size={12} />
+                        <span className="font-medium">{formatDateDisplay(stepPreliminareData)}</span>
+                        {stepPreliminareOrario && (
+                          <React.Fragment>
+                            <span className="text-emerald-400">•</span>
+                            <Clock size={12} />
+                            <span className="font-medium">{stepPreliminareOrario}</span>
+                          </React.Fragment>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
