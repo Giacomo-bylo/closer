@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, Calendar, Send, FileSignature, Home, Mail, ExternalLink } from 'lucide-react';
+import { 
+  ArrowLeft, Copy, Check, Phone, MapPin, Building2, Clock, 
+  AlertTriangle, FileText, TrendingUp, StickyNote, Loader2, 
+  Calendar, Send, FileSignature, Home, Mail, ExternalLink 
+} from 'lucide-react';
 import { getLeadDetails } from '@/services/leadService';
 import { supabaseConto } from '@/lib/supabase';
 import { LeadFullProfile } from '@/types';
@@ -35,7 +39,6 @@ const LeadDetail: React.FC = () => {
   const [stepPreliminare, setStepPreliminare] = useState<string>('da_organizzare');
   const [stepPreliminareData, setStepPreliminareData] = useState<string>('');
   const [stepPreliminareOrario, setStepPreliminareOrario] = useState<string>('');
-  const [savingSteps, setSavingSteps] = useState(false);
 
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [calendarModalType, setCalendarModalType] = useState<'sopralluogo' | 'preliminare'>('sopralluogo');
@@ -62,7 +65,7 @@ const LeadDetail: React.FC = () => {
           if (details.property.step_preliminare_orario) setStepPreliminareOrario(details.property.step_preliminare_orario);
         }
       } catch (err) {
-        setError('Impossibile caricare i dettagli del lead. Verifica l\'ID o riprova.');
+        setError('Impossibile caricare i dettagli del lead.');
       } finally {
         setLoading(false);
       }
@@ -84,23 +87,18 @@ const LeadDetail: React.FC = () => {
 
   const saveNotes = async () => {
     if (!data?.property?.id) return;
-    
     setSavingNotes(true);
     setNotesSaved(false);
-    
     try {
-      const { error } = await supabaseConto
+      const { error: err } = await supabaseConto
         .from('properties')
         .update({ closer_notes: notes })
         .eq('id', data.property.id);
-      
-      if (error) throw error;
-      
+      if (err) throw err;
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 3000);
     } catch (err) {
       console.error('Errore salvataggio note:', err);
-      alert('Errore nel salvataggio delle note');
     } finally {
       setSavingNotes(false);
     }
@@ -108,20 +106,16 @@ const LeadDetail: React.FC = () => {
 
   const saveCloserStatus = async (newStatus: string) => {
     if (!data?.property?.id) return;
-    
     setSavingCloserStatus(true);
     setCloserStatus(newStatus);
-    
     try {
-      const { error } = await supabaseConto
+      const { error: err } = await supabaseConto
         .from('properties')
         .update({ closer_status: newStatus })
         .eq('id', data.property.id);
-      
-      if (error) throw error;
+      if (err) throw err;
     } catch (err) {
       console.error('Errore salvataggio stato closer:', err);
-      alert('Errore nel salvataggio dello stato');
     } finally {
       setSavingCloserStatus(false);
     }
@@ -129,21 +123,14 @@ const LeadDetail: React.FC = () => {
 
   const saveStep = async (field: string, value: string) => {
     if (!data?.property?.id) return;
-    
-    setSavingSteps(true);
-    
     try {
-      const { error } = await supabaseConto
+      const { error: err } = await supabaseConto
         .from('properties')
         .update({ [field]: value })
         .eq('id', data.property.id);
-      
-      if (error) throw error;
+      if (err) throw err;
     } catch (err) {
       console.error('Errore salvataggio step:', err);
-      alert('Errore nel salvataggio');
-    } finally {
-      setSavingSteps(false);
     }
   };
 
@@ -172,7 +159,11 @@ const LeadDetail: React.FC = () => {
 
   const formatDateDisplay = (dateString: string) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return new Date(dateString).toLocaleDateString('it-IT', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
   };
 
   const handleDateChange = (field: string, setDateFn: (val: string) => void, value: string) => {
@@ -180,6 +171,7 @@ const LeadDetail: React.FC = () => {
     saveStep(field, value);
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -188,6 +180,7 @@ const LeadDetail: React.FC = () => {
     );
   }
 
+  // Error state
   if (error || !data) {
     return (
       <div className="text-center py-12">
@@ -202,18 +195,31 @@ const LeadDetail: React.FC = () => {
   }
 
   const { call, property } = data;
-  const leadName = property?.lead_nome 
-    ? `${property.lead_nome} ${property.lead_cognome || ''}` 
-    : call?.lead_nome || 'Nome Sconosciuto';
   
-  const leadPhone = property?.lead_telefono || call?.lead_telefono || 'Numero non disponibile';
+  const leadName = property?.lead_nome 
+    ? (property.lead_nome + ' ' + (property.lead_cognome || '')).trim()
+    : (call?.lead_nome || 'Nome Sconosciuto');
+  
+  const leadPhone = property?.lead_telefono || call?.lead_telefono || 'N/D';
   const leadEmail = property?.lead_email || null;
-
   const prezzoAcquistoMin = property?.prezzo_acquisto ? Math.round(property.prezzo_acquisto * 0.95) : null;
   const prezzoAcquistoMax = property?.prezzo_acquisto || null;
 
+  // Funzione per determinare classe CSS stato closer
+  const getCloserStatusClass = () => {
+    if (closerStatus === 'approvato') {
+      return 'bg-emerald-50 border-emerald-400 text-emerald-700 focus:ring-emerald-400';
+    }
+    if (closerStatus === 'rifiutato') {
+      return 'bg-red-50 border-red-400 text-red-700 focus:ring-red-400';
+    }
+    return 'bg-amber-50 border-amber-400 text-amber-700 focus:ring-amber-400';
+  };
+
   return (
     <div className="space-y-6">
+      
+      {/* Calendar Modal */}
       {property && (
         <CalendarModal
           isOpen={calendarModalOpen}
@@ -247,13 +253,8 @@ const LeadDetail: React.FC = () => {
                   <button
                     onClick={() => copyEmail(leadEmail)}
                     className="p-1 hover:bg-slate-100 rounded transition-colors"
-                    title="Copia email"
                   >
-                    {copiedEmail ? (
-                      <Check size={14} className="text-emerald-600" />
-                    ) : (
-                      <Copy size={14} className="text-slate-400 hover:text-slate-600" />
-                    )}
+                    {copiedEmail ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} className="text-slate-400" />}
                   </button>
                 </div>
               )}
@@ -267,14 +268,7 @@ const LeadDetail: React.FC = () => {
               value={closerStatus}
               onChange={(e) => saveCloserStatus(e.target.value)}
               disabled={savingCloserStatus}
-              className={`px-5 py-2.5 text-sm font-semibold rounded-xl border-2 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 appearance-none text-center ${
-                closerStatus === 'approvato' 
-                  ? 'bg-emerald-50 border-emerald-400 text-emerald-700 focus:ring-emerald-400' 
-                  : closerStatus === 'rifiutato'
-                  ? 'bg-red-50 border-red-400 text-red-700 focus:ring-red-400'
-                  : 'bg-amber-50 border-amber-400 text-amber-700 focus:ring-amber-400'
-              }`}
-              style={{ minWidth: '160px', textAlignLast: 'center' }}
+              className={'px-5 py-2.5 text-sm font-semibold rounded-xl border-2 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 appearance-none text-center min-w-[160px] ' + getCloserStatusClass()}
             >
               <option value="in_lavorazione">In lavorazione</option>
               <option value="approvato">Approvato</option>
@@ -292,14 +286,14 @@ const LeadDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid a due colonne */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* COLONNA SINISTRA: Scheda Immobile + Valutazione + Note */}
+        {/* COLONNA SINISTRA */}
         <section className="space-y-4">
           
           {/* Scheda Immobile */}
-          {property ? (
+          {property && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                 <div className="flex items-center gap-2 font-semibold text-slate-800">
@@ -332,7 +326,7 @@ const LeadDetail: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Superficie</span>
-                    <span className="font-medium">{property.superficie_mq ? `${property.superficie_mq} mq` : '-'}</span>
+                    <span className="font-medium">{property.superficie_mq ? property.superficie_mq + ' mq' : '-'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Locali</span>
@@ -351,21 +345,16 @@ const LeadDetail: React.FC = () => {
                     <span className="font-medium">{property.ascensore || '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Anno costruzione</span>
+                    <span className="text-slate-500">Anno</span>
                     <span className="font-medium">{property.anno_costruzione || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Aree esterne</span>
-                    <span className="font-medium">{property.aree_esterne || '-'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Pertinenze</span>
-                    <span className="font-medium">{property.pertinenze || '-'}</span>
                   </div>
                 </div>
               </div>
             </div>
-          ) : (
+          )}
+
+          {/* No Property */}
+          {!property && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <div className="text-center py-6 text-slate-400">
                 <Building2 size={40} className="mx-auto mb-2 opacity-20" />
@@ -388,18 +377,18 @@ const LeadDetail: React.FC = () => {
                   <div className="bg-bylo-blue/5 border border-bylo-blue/20 rounded-lg p-3">
                     <div className="text-[10px] text-bylo-blue font-medium uppercase tracking-wide mb-0.5">Range Offerta</div>
                     <div className="text-xl font-bold text-bylo-blue">
-                      {prezzoAcquistoMin && prezzoAcquistoMax 
-                        ? `${formatCurrency(prezzoAcquistoMin)} - ${formatCurrency(prezzoAcquistoMax)}`
+                      {(prezzoAcquistoMin && prezzoAcquistoMax) 
+                        ? formatCurrency(prezzoAcquistoMin) + ' - ' + formatCurrency(prezzoAcquistoMax)
                         : '-'
                       }
                     </div>
                   </div>
 
-                  <div className={`rounded-lg p-3 ${property.offerta_definitiva ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
-                    <div className={`text-[10px] font-medium uppercase tracking-wide mb-0.5 ${property.offerta_definitiva ? 'text-emerald-600' : 'text-slate-500'}`}>
+                  <div className={property.offerta_definitiva ? 'rounded-lg p-3 bg-emerald-50 border border-emerald-200' : 'rounded-lg p-3 bg-slate-50 border border-slate-200'}>
+                    <div className={property.offerta_definitiva ? 'text-[10px] font-medium uppercase tracking-wide mb-0.5 text-emerald-600' : 'text-[10px] font-medium uppercase tracking-wide mb-0.5 text-slate-500'}>
                       Offerta Definitiva
                     </div>
-                    <div className={`text-xl font-bold ${property.offerta_definitiva ? 'text-emerald-700' : 'text-slate-400'}`}>
+                    <div className={property.offerta_definitiva ? 'text-xl font-bold text-emerald-700' : 'text-xl font-bold text-slate-400'}>
                       {property.offerta_definitiva ? formatCurrency(property.offerta_definitiva) : 'Da definire'}
                     </div>
                   </div>
@@ -448,22 +437,17 @@ const LeadDetail: React.FC = () => {
                     disabled={savingNotes}
                     className="px-3 py-1.5 text-xs font-medium text-white bg-bylo-blue hover:bg-bylo-hover rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    {savingNotes ? (
-                      <React.Fragment>
-                        <Loader2 size={12} className="animate-spin" />
-                        Salvo...
-                      </React.Fragment>
-                    ) : (
-                      'Salva Note'
-                    )}
+                    {savingNotes && <Loader2 size={12} className="animate-spin" />}
+                    {savingNotes ? 'Salvo...' : 'Salva Note'}
                   </button>
                 </div>
               </div>
             </div>
           )}
+
         </section>
 
-        {/* COLONNA DESTRA: Processo Acquisizione + Conversazione Setter */}
+        {/* COLONNA DESTRA */}
         <section className="space-y-4">
           
           {/* Processo Acquisizione */}
@@ -476,7 +460,8 @@ const LeadDetail: React.FC = () => {
                 </div>
               </div>
               <div className="px-5 py-2">
-                {/* Step Chiamata */}
+                
+                {/* STEP 1: Chiamata */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-24 flex-shrink-0">
@@ -485,28 +470,14 @@ const LeadDetail: React.FC = () => {
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
-                        onClick={() => {
-                          setStepChiamata('da_contattare');
-                          saveStep('step_chiamata', 'da_contattare');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepChiamata !== 'contattato' 
-                            ? 'bg-red-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepChiamata('da_contattare'); saveStep('step_chiamata', 'da_contattare'); }}
+                        className={stepChiamata !== 'contattato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da contattare
                       </button>
                       <button
-                        onClick={() => {
-                          setStepChiamata('contattato');
-                          saveStep('step_chiamata', 'contattato');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepChiamata === 'contattato' 
-                            ? 'bg-emerald-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepChiamata('contattato'); saveStep('step_chiamata', 'contattato'); }}
+                        className={stepChiamata === 'contattato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Contattato
                       </button>
@@ -522,7 +493,7 @@ const LeadDetail: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Step Sopralluogo */}
+                {/* STEP 2: Sopralluogo */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-24 flex-shrink-0">
@@ -531,35 +502,21 @@ const LeadDetail: React.FC = () => {
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
-                        onClick={() => {
-                          setStepSopralluogo('da_organizzare');
-                          saveStep('step_sopralluogo', 'da_organizzare');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepSopralluogo !== 'organizzato' 
-                            ? 'bg-red-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepSopralluogo('da_organizzare'); saveStep('step_sopralluogo', 'da_organizzare'); }}
+                        className={stepSopralluogo !== 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da organizzare
                       </button>
                       <button
-                        onClick={() => {
-                          setStepSopralluogo('organizzato');
-                          saveStep('step_sopralluogo', 'organizzato');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepSopralluogo === 'organizzato' 
-                            ? 'bg-emerald-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepSopralluogo('organizzato'); saveStep('step_sopralluogo', 'organizzato'); }}
+                        className={stepSopralluogo === 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Organizzato
                       </button>
                     </div>
                     <div className="flex-1">
                       {stepSopralluogoData ? (
-                        
+                        <a
                           href={CALENDLY_SCHEDULED_EVENTS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -580,23 +537,23 @@ const LeadDetail: React.FC = () => {
                     </div>
                   </div>
                   {stepSopralluogoData && (
-                    <div className="mt-2 ml-32 pl-1">
+                    <div className="mt-2 ml-28">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
                         <Calendar size={12} />
                         <span className="font-medium">{formatDateDisplay(stepSopralluogoData)}</span>
                         {stepSopralluogoOrario && (
-                          <React.Fragment>
+                          <span className="flex items-center gap-1">
                             <span className="text-emerald-400">•</span>
                             <Clock size={12} />
                             <span className="font-medium">{stepSopralluogoOrario}</span>
-                          </React.Fragment>
+                          </span>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Step Accordo */}
+                {/* STEP 3: Accordo */}
                 <div className="py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-24 flex-shrink-0">
@@ -605,28 +562,14 @@ const LeadDetail: React.FC = () => {
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
-                        onClick={() => {
-                          setStepAccordo('da_inviare');
-                          saveStep('step_accordo', 'da_inviare');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepAccordo !== 'inviato' 
-                            ? 'bg-red-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepAccordo('da_inviare'); saveStep('step_accordo', 'da_inviare'); }}
+                        className={stepAccordo !== 'inviato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da inviare
                       </button>
                       <button
-                        onClick={() => {
-                          setStepAccordo('inviato');
-                          saveStep('step_accordo', 'inviato');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepAccordo === 'inviato' 
-                            ? 'bg-emerald-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepAccordo('inviato'); saveStep('step_accordo', 'inviato'); }}
+                        className={stepAccordo === 'inviato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Inviato
                       </button>
@@ -642,7 +585,7 @@ const LeadDetail: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Step Preliminare */}
+                {/* STEP 4: Preliminare */}
                 <div className="py-3">
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 w-24 flex-shrink-0">
@@ -651,35 +594,21 @@ const LeadDetail: React.FC = () => {
                     </div>
                     <div className="flex rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
                       <button
-                        onClick={() => {
-                          setStepPreliminare('da_organizzare');
-                          saveStep('step_preliminare', 'da_organizzare');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepPreliminare !== 'organizzato' 
-                            ? 'bg-red-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepPreliminare('da_organizzare'); saveStep('step_preliminare', 'da_organizzare'); }}
+                        className={stepPreliminare !== 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-red-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Da organizzare
                       </button>
                       <button
-                        onClick={() => {
-                          setStepPreliminare('organizzato');
-                          saveStep('step_preliminare', 'organizzato');
-                        }}
-                        className={`w-24 py-2 text-xs font-medium transition-colors ${
-                          stepPreliminare === 'organizzato' 
-                            ? 'bg-emerald-500 text-white' 
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
+                        onClick={() => { setStepPreliminare('organizzato'); saveStep('step_preliminare', 'organizzato'); }}
+                        className={stepPreliminare === 'organizzato' ? 'w-24 py-2 text-xs font-medium bg-emerald-500 text-white' : 'w-24 py-2 text-xs font-medium bg-white text-slate-500 hover:bg-slate-50'}
                       >
                         Organizzato
                       </button>
                     </div>
                     <div className="flex-1">
                       {stepPreliminareData ? (
-                        
+                        <a
                           href={CALENDLY_SCHEDULED_EVENTS_URL}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -700,21 +629,22 @@ const LeadDetail: React.FC = () => {
                     </div>
                   </div>
                   {stepPreliminareData && (
-                    <div className="mt-2 ml-32 pl-1">
+                    <div className="mt-2 ml-28">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-700">
                         <Calendar size={12} />
                         <span className="font-medium">{formatDateDisplay(stepPreliminareData)}</span>
                         {stepPreliminareOrario && (
-                          <React.Fragment>
+                          <span className="flex items-center gap-1">
                             <span className="text-emerald-400">•</span>
                             <Clock size={12} />
                             <span className="font-medium">{stepPreliminareOrario}</span>
-                          </React.Fragment>
+                          </span>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
+
               </div>
             </div>
           )}
@@ -766,39 +696,42 @@ const LeadDetail: React.FC = () => {
                       <FileText size={14} /> Riepilogo
                     </h3>
                     <p className="text-sm text-slate-700 leading-relaxed">
-                      {call.riepilogo_chiamata || "Nessun riepilogo disponibile."}
+                      {call.riepilogo_chiamata || 'Nessun riepilogo disponibile.'}
                     </p>
                   </div>
 
-                  <div className="space-y-3 text-sm">
-                    {call.problematiche_immobile && (
+                  {call.problematiche_immobile && (
+                    <div className="text-sm">
+                      <span className="font-medium text-slate-900">Problematiche:</span>
+                      <p className="text-slate-600 mt-0.5">{call.problematiche_immobile}</p>
+                    </div>
+                  )}
+                  
+                  {call.obiezioni_cliente && (
+                    <div className="text-sm">
+                      <span className="font-medium text-slate-900">Obiezioni:</span>
+                      <p className="text-slate-600 mt-0.5">{call.obiezioni_cliente}</p>
+                    </div>
+                  )}
+                  
+                  {call.esito_qualificazione === 'callback_richiesto' && (
+                    <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-lg text-sm text-amber-800 flex items-start gap-2">
+                      <Clock className="flex-shrink-0 mt-0.5" size={14} />
                       <div>
-                        <span className="font-medium text-slate-900">Problematiche:</span>
-                        <p className="text-slate-600 mt-0.5">{call.problematiche_immobile}</p>
+                        <span className="font-bold">Callback:</span> {call.callback_orario || 'Orario non specificato'}
+                        {call.callback_motivo && (
+                          <div className="mt-0.5 text-xs opacity-90">{call.callback_motivo}</div>
+                        )}
                       </div>
-                    )}
-                    {call.obiezioni_cliente && (
-                      <div>
-                        <span className="font-medium text-slate-900">Obiezioni:</span>
-                        <p className="text-slate-600 mt-0.5">{call.obiezioni_cliente}</p>
-                      </div>
-                    )}
-                    {call.esito_qualificazione === 'callback_richiesto' && (
-                      <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-lg text-sm text-amber-800 flex items-start gap-2">
-                        <Clock className="flex-shrink-0 mt-0.5" size={14} />
-                        <div>
-                          <span className="font-bold">Callback:</span> {call.callback_orario || 'Orario non specificato'}
-                          {call.callback_motivo && <div className="mt-0.5 text-xs opacity-90">{call.callback_motivo}</div>}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   <TranscriptViewer transcript={call.transcript} />
                 </div>
               )}
             </div>
           </div>
+
         </section>
 
       </div>
